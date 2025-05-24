@@ -19,7 +19,7 @@ class Inform:
         f_lbl = Label(self.root, image=self.photoimg)
         f_lbl.place(x=0, y=0, width=625, height=170)
 
-        img1 = Image.open("college_images\\com2.webp")
+        img1 = Image.open("college_images\\_com2.webp")
         img1 = img1.resize((735, 170), Image.Resampling.LANCZOS)
         self.photoimg1 = ImageTk.PhotoImage(img1)
         f_lbl1 = Label(self.root, image=self.photoimg1)
