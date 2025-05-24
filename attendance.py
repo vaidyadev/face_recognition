@@ -244,7 +244,7 @@ class attendance:
           try:
             selected = self.attendence_table.focus()
             if not selected:
-                messagebox.showerror("Error", "Please select a record to update.")
+                messagebox.showerror("Error", "Please select a record to update.",parent=self.root)
                 return
             self.attendence_table.item(selected, values=(
                 self.var_atten_id.get(),
