@@ -218,7 +218,7 @@ class attendance:
                 exp_write=csv.writer(f1,delimiter=',')
                 for i in mydata:
                     exp_write.writerow(i)
-                messagebox.showinfo('Data Exported','Your data is succesfully exported to '+ os.path.basename(file_name) + ' successfully')
+                messagebox.showinfo('Data Exported','Your data is succesfully exported to '+ os.path.basename(file_name) + ' successfully',parent=self.root)
         except Exception as e:
             messagebox.showerror('Error',f'Failed to export data due to {str(e)}',parent=self.root)
     def get_cursor(self,event=''):

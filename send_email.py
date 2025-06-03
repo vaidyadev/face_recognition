@@ -1,15 +1,16 @@
 from tkinter import *
 from tkinter import ttk, messagebox,filedialog
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 import mysql.connector
 from pygame import mixer
 import speech_recognition 
 from email.message import EmailMessage
 import smtplib
 import os
-from PIL import Image,ImageTk,ImageDraw
 import io
 
+# Import the ToolTip class from your chatbot1.py file
+from chatbot1 import ToolTip 
 
 
 class emailsender:
@@ -43,6 +44,9 @@ class emailsender:
         setting_button = Button(title_frame, image=self.photoimg1, bg='white', cursor='hand2',
                                 activebackground='white', borderwidth=0,command=self.setting)
         setting_button.grid(row=0, column=1, padx=15)
+        # Add tooltip to setting button
+        ToolTip(setting_button, "Email Credentials Settings") 
+
 
         # ------------------ To Email Section ------------------ #
         to_label = LabelFrame(root, text='To (Email Address)',
@@ -84,12 +88,14 @@ class emailsender:
         speak_button=Button(compose_label,text='  Speak',image=self.photoimg2,compound=LEFT,
                             font=('arial',12,'bold'),cursor='hand2',bd=0,bg='dodger blue2',activebackground='dodger blue2',command=self.speak)
         speak_button.grid(row=0,column=0)
+        
 
         img3 = Image.open("assets\\attechment.png")
         img3 = img3.resize((48,48), Image.Resampling.LANCZOS)
         self.photoimg3 = ImageTk.PhotoImage(img3)
         attech_button=Button(compose_label,text='  Attachments',image=self.photoimg3,compound=LEFT,font=('arial',12,'bold'),cursor='hand2',bd=0,bg='dodger blue2',activebackground='dodger blue2',command=self.attechment)
         attech_button.grid(row=0,column=1)
+        
 
         # Label for image preview (initially empty)
         self.image_frame = Frame(compose_label)
@@ -120,6 +126,8 @@ class emailsender:
         send_button = Button(root, image=self.photoimg4, bg='dodger blue2', cursor='hand2',
                                 activebackground='dodger blue2', borderwidth=0,command=self.send_mail)
         send_button.place(x=450,y=500)
+        # Add tooltip to send button
+        ToolTip(send_button, "Send Email")
 
         img5 = Image.open("assets\\Clear.png")
         self.photoimg5 = ImageTk.PhotoImage(img5)
@@ -127,6 +135,8 @@ class emailsender:
         clear_button = Button(root, image=self.photoimg5, bg='dodger blue2', cursor='hand2',
                                 activebackground='dodger blue2', borderwidth=0,command=self.clear)
         clear_button.place(x=550,y=500)
+        # Add tooltip to clear button
+        ToolTip(clear_button, "Clear All Fields")
 
         img6 = Image.open("assets\\exit.png")
         self.photoimg6 = ImageTk.PhotoImage(img6)
@@ -134,10 +144,8 @@ class emailsender:
         exit_button = Button(root, image=self.photoimg6, bg='dodger blue2', cursor='hand2',
                                 activebackground='dodger blue2', borderwidth=0,command=self.iexit)
         exit_button.place(x=650,y=500)
-
-
-
-
+        # Add tooltip to exit button
+        ToolTip(exit_button, "Exit Application")
 
 
 
@@ -184,6 +192,13 @@ class emailsender:
         self.to_entry.delete(0,END)
         self.subject_entry.delete(0,END)
         self.textarea.delete(1.0,END)
+        # Clear attachments and thumbnails as well
+        self.attachments = []
+        for thumb_ref in self.image_thumbnails:
+            # You might need to manage deletion of images from textarea if they are inline
+            # For now, just clear the list.
+            pass 
+        self.image_thumbnails = []
 
     def speak(self):
         mixer.init()
@@ -239,9 +254,15 @@ class emailsender:
         save_button = Button(root1, text='Save', bg='gold2',fg='black',cursor='hand2',
                             font=('times new roman', 18, 'bold'),activebackground='gray10',activeforeground='white', borderwidth=0,command=save)
         save_button.place(x=200,y=250)
+        # Add tooltip to save button in settings
+        ToolTip(save_button, "Save your email credentials")
+
         clear_button = Button(root1, text='Clear', bg='gold2',fg='black',cursor='hand2',
                             font=('times new roman', 18, 'bold'),activebackground='gray10',activeforeground='white', borderwidth=0,command=clear1)
         clear_button.place(x=320,y=250)
+        # Add tooltip to clear button in settings
+        ToolTip(clear_button, "Clear credentials fields")
+
         with open ('credentials.txt')as f:
             for i in f:
                 cr=i.strip().split(',')
@@ -249,12 +270,6 @@ class emailsender:
         pass_entry.insert(0,cr[1])
 
         
-
-
-
-
-        
-
         root1.mainloop()
 
     def attechment(self):
@@ -299,10 +314,7 @@ class emailsender:
 
 
 
-
-
    
-
     def send_mail(self):
         if self.to_entry.get()=='' or self.subject_entry.get()=='' or self.textarea.get(1.0,END)=='\n':
             messagebox.showerror('Error','All field are required',parent=self.root)
@@ -360,8 +372,6 @@ class emailsender:
 
 
     
-
-
 
 if __name__ == '__main__':
     root = Tk()

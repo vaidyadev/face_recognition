@@ -5,9 +5,7 @@ import mysql.connector
 from pygame import mixer
 import speech_recognition 
 import pywhatkit
-
-
-
+from chatbot1 import ToolTip 
 
 
 class msgsender:
@@ -77,6 +75,7 @@ class msgsender:
         speak_button=Button(compose_label,text='  Speak',image=self.photoimg2,compound=LEFT,
                             font=('arial',18,'bold'),cursor='hand2',bd=0,bg='dodger blue2',activebackground='dodger blue2',command=self.speak)
         speak_button.grid(row=0,column=0)
+        
 
 
        
@@ -103,6 +102,8 @@ class msgsender:
         send_button = Button(root, image=self.photoimg4, bg='dodger blue2', cursor='hand2',
                                 activebackground='dodger blue2', borderwidth=0,command=self.send_whatsapp)
         send_button.place(x=450,y=500)
+        # Add tooltip to send button
+        ToolTip(send_button, "Send WhatsApp message")
 
         img5 = Image.open("assets\\Clear.png")
         self.photoimg5 = ImageTk.PhotoImage(img5)
@@ -110,6 +111,8 @@ class msgsender:
         clear_button = Button(root, image=self.photoimg5, bg='dodger blue2', cursor='hand2',
                                 activebackground='dodger blue2', borderwidth=0,command=self.clear)
         clear_button.place(x=550,y=500)
+        # Add tooltip to clear button
+        ToolTip(clear_button, "Clear all fields")
 
         img6 = Image.open("assets\\exit.png")
         self.photoimg6 = ImageTk.PhotoImage(img6)
@@ -117,10 +120,8 @@ class msgsender:
         exit_button = Button(root, image=self.photoimg6, bg='dodger blue2', cursor='hand2',
                                 activebackground='dodger blue2', borderwidth=0,command=self.iexit)
         exit_button.place(x=650,y=500)
-
-
-
-
+        # Add tooltip to exit button
+        ToolTip(exit_button, "Exit application")
 
 
 
@@ -208,7 +209,6 @@ class msgsender:
 
    
        
-
 
 
 if __name__ == '__main__':

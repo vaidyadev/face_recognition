@@ -10,7 +10,7 @@ import os
 import tkinter
 from time import strftime
 from datetime import datetime
-from chatbot import ChatBot
+from chatbot1 import ChatBot
 import pyttsx3
 from devloper import developer
 
@@ -29,8 +29,8 @@ class face_recog:
         voices = engine.getProperty('voices')
         engine.setProperty('rate',150) 
         engine.setProperty('volume', 1.0)  
-        engine.setProperty('voice',voices[0].id)
-        engine.say("welcome to facial recognition attendance system plz put your internet on and you must have webcam!!")
+        engine.setProperty('voice',voices[1].id)
+        engine.say("welcome to facial recognition attendance system please put your internet on and you must have webcam!!")
         engine.runAndWait()
         tkinter.messagebox.showwarning('Note','This application required stable internet connection and webcam',parent=self.root)
         

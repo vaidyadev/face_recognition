@@ -82,7 +82,7 @@ class train:
         clf.train(faces,ids)
         clf.write('classifier.xml')
         cv2.destroyAllWindows()
-        messagebox.showinfo('Result','Training Datasets Completed!!')
+        messagebox.showinfo('Result','Training Datasets Completed!!',parent=self.root)
     def back(self):
         self.root.destroy()
     def update_time(self):
