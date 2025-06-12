@@ -120,7 +120,6 @@ class ChatBot:
         self.read_selection_btn.place(x=480, y=50)
 
 
-       
         # Set a default language for the chatbot's speech
         self.bot_speak_language_code = "en" # Default to English, you can change this
         
