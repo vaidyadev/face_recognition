@@ -112,6 +112,13 @@ class ChatBot:
                        activebackground='white', fg='purple', activeforeground='pink',
                        command=self.read_all_chat)
         self.read_btn.place(x=330, y=50)
+        self.photoimg5 = ImageTk.PhotoImage(Image.open("assets/speaking.png").resize((48, 48), Image.Resampling.LANCZOS))
+        self.read_selection_btn = Button(btn_frame, text='Speak Selected', image=self.photoimg5, compound=LEFT,
+                            font=('arial', 10, 'bold'), cursor='hand2', bd=0, bg='white',
+                            activebackground='white', fg='blue', activeforeground='orange red',
+                            command=self.read_selected_text)
+        self.read_selection_btn.place(x=480, y=50)
+
 
        
         # Set a default language for the chatbot's speech
@@ -168,7 +175,7 @@ class ChatBot:
         self.language_combo = ttk.Combobox(btn_frame, textvariable=self.language_var,
                                         values=sorted_language_names, state="readonly",
                                         font=('arial', 12, 'bold'), width=15)
-        self.language_combo.place(x=500, y=55, width=150, height=35)
+        self.language_combo.place(x=650, y=55, width=80, height=35)
 
 
         # History panel (initially hidden)
@@ -188,7 +195,22 @@ class ChatBot:
                         font=('arial', 10, 'bold'),activebackground='green',activeforeground='black',cursor='hand2', command=self.clear_all_history)
         clear_btn.pack(side=BOTTOM, fill=X)
 
+    def read_selected_text(self):
+        try:
+            self.text.config(state='normal')
+            selected_text = self.text.get(SEL_FIRST, SEL_LAST).strip()
+            self.text.config(state='disabled')
+        except Exception:
+            messagebox.showinfo("Speak Selected", "No text selected!", parent=self.root)
+            return
 
+        if not selected_text:
+            messagebox.showinfo("Speak Selected", "No text selected!", parent=self.root)
+            return
+
+        selected_lang_name = self.language_var.get()
+        selected_lang_code = self.language_options.get(selected_lang_name, "en")
+        self.speak_text_gtts(selected_text, selected_lang_code)
 
 
     def update_time(self):
