@@ -10,7 +10,7 @@ from openai import OpenAI
 import threading
 client = OpenAI(
 base_url="https://openrouter.ai/api/v1",
-api_key="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",  
+api_key="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",
 )
 
 
@@ -196,7 +196,7 @@ class ChatBot:
                     
                     "X-Title": "HelpBot"
                 },
-                model="meta-llama/llama-3.3-8b-instruct:free",
+                model="meta-llama/llama-3.3-70b-instruct:free",
                 messages=[
                     {"role": "user", "content": prompt}
                 ]

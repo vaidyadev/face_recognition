@@ -7,7 +7,6 @@ import speech_recognition
 import pywhatkit
 from chatbot1 import ToolTip 
 
-
 class msgsender:
     check=False
     def __init__(self, root):
@@ -205,12 +204,7 @@ class msgsender:
             except Exception as e:
                 messagebox.showerror("Error", str(e),parent=self.root)
         
-   
-
-   
-       
-
-
+  
 if __name__ == '__main__':
     root = Tk()
     obj = msgsender(root)

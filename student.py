@@ -227,7 +227,7 @@ class students:
         btn_frame1=Frame(class_student_frame,bd=2,relief=RIDGE,bg='white')
         btn_frame1.place(x=0,y=205,width=635,height=25)
 
-        take_photo_btn=Button(btn_frame1,text="Take Photo Sample",width=45,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.photo_sample)
+        take_photo_btn=Button(btn_frame1,text="Take Photo Sample",width=45,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.photo_sample,padx=(1.9))
         take_photo_btn.grid(row=1,column=0)
 
         update_photo_btn=Button(btn_frame1,text="Update Photo Sample",width=45,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_photosample)

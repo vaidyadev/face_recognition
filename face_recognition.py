@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 from PIL import Image,ImageTk
+import cv2.face
 from student import students
 from train import train
 import mysql.connector

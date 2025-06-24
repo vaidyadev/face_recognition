@@ -15,7 +15,7 @@ import json
 
 client = OpenAI(
 base_url="https://openrouter.ai/api/v1",
-api_key="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",
+api_key="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",
 )
 
 
@@ -274,6 +274,7 @@ class ChatBot:
         self.history_data = []
         self.save_history()
         self.render_history()
+    
     def load_history_entry(self, text):
         # self.entry.config(state='normal')
         self.entry.delete(0, END)
@@ -306,6 +307,7 @@ class ChatBot:
             del_btn = Button(frame, text="🗑", bg='white',activebackground='white',fg='red',activeforeground='green', bd=0, font=('arial', 10),cursor='hand2',
                             command=lambda i=index: self.delete_history_entry(i))
             del_btn.pack(side=RIGHT)
+    
     def send(self):
         user_input = self.entry.get().strip().lower()
         user_text = self.entry.get().strip()
@@ -363,8 +365,6 @@ class ChatBot:
             # Start the thread to process in background
         threading.Thread(target=process).start()
 
-
-
     def clear(self):
         self.text.config(state='normal')
         self.entry.delete(0, END)
@@ -396,8 +396,6 @@ class ChatBot:
         selected_lang_code = self.language_options.get(selected_lang_name, "en") # Default to 'en' if not found
         self.speak_text_gtts('So far we have talked about: ' + full_chat_text, selected_lang_code)
 
-
-
     def ask_openai(self, prompt):
         try:
             completion = client.chat.completions.create(
@@ -405,7 +403,7 @@ class ChatBot:
 
                     "X-Title": "HelpBot"
                 },
-                model="meta-llama/llama-3.3-8b-instruct:free",
+                model="meta-llama/llama-3.3-70b-instruct:free",
                 
                 messages=[
                 {"role": "system", "content": "You are a helpful, friendly, and intelligent female assistant named HelpBot. Speak in a polite and empathetic manner."},
@@ -415,6 +413,7 @@ class ChatBot:
             )
             return completion.choices[0].message.content.strip()
         except Exception as e:
+            print(e)
             return f"OpenRouter error: {str(e)}"
 class ToolTip(object):
     def __init__(self, widget, text='widget info', wraplength=300):

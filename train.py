@@ -1,4 +1,5 @@
 from time import strftime
+import cv2.face
 import numpy as np 
 import cv2
 from tkinter import *
