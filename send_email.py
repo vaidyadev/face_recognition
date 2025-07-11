@@ -377,7 +377,6 @@ class emailsender:
                 self.textarea.image_create(END, image=thumb)
                 self.textarea.insert(END, "\n")
 
-
     def send_mail(self):
         recipient_address = self.to_entry.get().strip()
         subject = self.subject_var.get()
@@ -392,7 +391,6 @@ class emailsender:
             return
 
         self.sending_email(recipient_address, subject, message_body)
-
 
     def sending_email(self, address, subject, msg):
         from email.message import EmailMessage
@@ -443,7 +441,6 @@ class emailsender:
              messagebox.showerror("Error", "Credentials file (credentials.txt) not found. Please set your email and password in settings.", parent=self.root)
         except Exception as e:
             messagebox.showerror("Error", f'Your mail was not sent due to {str(e)}', parent=self.root)
-
 
     def open_schedule_window(self):
         schedule_window = Toplevel(self.root)
