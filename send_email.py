@@ -486,8 +486,7 @@ class emailsender:
         self.hour_spinbox.grid(row=0, column=0, padx=5)
         ToolTip(self.hour_spinbox, "Enter hour (00-23)")
         self.hour_spinbox.delete(0, 'end')
-        self.hour_spinbox.insert(0, datetime.now().hour)
-
+        self.hour_spinbox.insert(0, f"{datetime.now().hour:02}")
 
         colon_label = Label(time_frame, text=":", font=('times new roman', 12, 'bold'), bg='dodger blue2', fg='white')
         colon_label.grid(row=0, column=1)
@@ -499,7 +498,7 @@ class emailsender:
         self.minute_spinbox.grid(row=0, column=2, padx=5)
 
         self.minute_spinbox.delete(0, 'end')
-        self.minute_spinbox.insert(0, datetime.now().minute)
+        self.minute_spinbox.insert(0, f"{datetime.now().minute:02}")
 
         ToolTip(self.minute_spinbox, "Enter minutes (00-59)")
         schedule_button = Button(schedule_window, text="Schedule Email",
