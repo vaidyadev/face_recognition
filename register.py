@@ -1,12 +1,12 @@
 from tkinter import *
-from tkinter import ttk
+from tkinter import Toplevel, Text, BOTH, WORD, END, ttk, Scrollbar
 from PIL import Image,ImageTk
 from tkinter import messagebox
 import re
 import mysql.connector
 import smtplib
 from email.message import EmailMessage
-
+from chatbot1 import ToolTip
 
 class register:
     def __init__(self,root):
@@ -127,9 +127,15 @@ class register:
         self.confirm_password_visible = False
 
     ##########################################check box#########################
-        chk_button=Checkbutton(frame,text="I Agree Terms & Conditions",onvalue="on",offvalue="off",font=('times new roman',12,'bold'),variable=self.var_chk)
-        chk_button.place(x=50,y=400)
+        chk_button = Checkbutton(frame, text="I Agree", onvalue="on", offvalue="off", font=('times new roman', 12, 'bold'), variable=self.var_chk, bg='white')
+        chk_button.place(x=50, y=400)
         self.var_chk.set('off')
+
+        # Add label for Terms & Conditions
+        terms_lbl = Label(frame, text="Terms & Conditions", font=('times new roman', 12, 'underline'), fg='blue', bg='white', cursor='hand2')
+        terms_lbl.place(x=130, y=400)
+        terms_lbl.bind("<Button-1>", self.open_terms_conditions)
+        ToolTip(terms_lbl,'Click to read terms and conditions')
 
         img1 = Image.open("college_images\\register-now-button1.jpg")
         img1 = img1.resize((150,50), Image.Resampling.LANCZOS)
@@ -144,6 +150,58 @@ class register:
         login_img.place(x=450, y=440, width=150)
 
     #####################Functions################################
+
+    def open_terms_conditions(self, event=None):
+        terms_window = Toplevel(self.root)
+        terms_window.title("Terms and Conditions")
+        terms_window.geometry("700x550+100+50")
+        terms_window.iconbitmap("college_images\\bg1.ico")
+        terms_window.configure(bg='#f0f8ff')
+        terms_window.resizable(False, False)
+
+        # Load logo image
+        logo_img = Image.open("college_images/facialrecognition (1).png").resize((100, 100), Image.Resampling.LANCZOS)
+        self.logo_photo = ImageTk.PhotoImage(logo_img)
+        logo_label = Label(terms_window, image=self.logo_photo, bg='#f0f8ff')
+        logo_label.pack(pady=(10, 0))
+
+        self.marquee_text = "  ABC Institute of Technology  •  "
+        self.marquee_label = Label(terms_window, font=("Segoe UI", 16, "bold"), bg="green", fg="red")
+        self.marquee_label.pack(pady=(0, 10))
+        self.animate_marquee()
+
+
+        frame = Frame(terms_window, bg="#f0f8ff")
+        frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
+
+        terms_text = Text(frame, wrap=WORD, font=('Segoe UI', 12), bg='white', fg='#333333', insertbackground='black')
+        terms_text.pack(side=LEFT, fill=BOTH, expand=True)
+
+        scroll = ttk.Scrollbar(frame, orient=VERTICAL, command=terms_text.yview, style="Vertical.TScrollbar")
+        scroll.pack(side=RIGHT, fill=Y)
+        terms_text.config(yscrollcommand=scroll.set)
+
+        def on_mousewheel(event):
+            terms_text.yview_scroll(int(-1*(event.delta/120)), "units")
+
+        terms_text.bind("<Enter>", lambda e: terms_text.bind_all("<MouseWheel>", on_mousewheel))
+        terms_text.bind("<Leave>", lambda e: terms_text.unbind_all("<MouseWheel>"))
+
+        try:
+            with open("terms.txt", "r", encoding="utf-8") as file:
+                terms = file.read()
+        except FileNotFoundError:
+            terms = "⚠️ Terms and Conditions file not found."
+
+        terms_text.insert(END, terms)
+        terms_text.config(state=DISABLED)
+
+    def animate_marquee(self):
+        text = self.marquee_text
+        self.marquee_text = text[1:] + text[0]
+        self.marquee_label.config(text=self.marquee_text)
+        self.marquee_label.after(150, self.animate_marquee)
+
     def register(self):
         self.vemail=self.var_email.get()
         if self.var_fname.get()==''or self.var_lname.get()==''or self.var_contact.get()==''or self.var_email.get()=='' or self.var_security.get()=='Select' or self.var_securitya.get()=='' or self.var_pass.get()=='' or self.var_cpass.get()=='' :
@@ -205,8 +263,6 @@ class register:
             except Exception as e:
                 messagebox.showerror(f'Registration has not done due to {str(e)}')
                 
-                
-
     def check_password_strength(self, event=None):
         password = self.var_pass.get()
 
@@ -228,6 +284,7 @@ class register:
             color = "red"
 
         self.strength_label.config(text=f"Strength: {strength}", fg=color)
+ 
     def toggle_password(self):
         if self.password_visible:
             self.pasw.config(show='*')
@@ -256,14 +313,14 @@ class register:
             re.search(r'[0-9]', password) and
             re.search(r'[!@#$%^&*(),.?":{}|<>]', password)
         )
+  
     def login_now(self):
         self.root.destroy()
         import login  
         root = Tk()
         obj = login.login_window(root)
         root.mainloop()
-
-   
+ 
     def send_confirmation_email(self, to_email, name):
             with open ('credentials.txt') as f1:
                 for i in f1:
@@ -295,19 +352,6 @@ class register:
             server.send_message(msg)
             server.quit()
             messagebox.showinfo('Success','Registration email has successfully send to user email')
-
-
-                
-
-
-
-
-
-
-
-
-
-        
 
 if __name__ == '__main__':
     root=Tk()

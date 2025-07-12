@@ -1,0 +1,36 @@
+FACE RECOGNITION ATTENDANCE SYSTEM
+ADMINISTRATOR TERMS AND CONDITIONS
+
+1. Data Collection Responsibility:
+   As an administrator, you are solely responsible for collecting and enrolling facial data of individuals. Ensure that proper consent is obtained from each participant before data capture.
+
+2. Legal Compliance:
+   You agree to comply with applicable data protection laws and institutional policies when handling biometric data. Unauthorized use or sharing of facial data is strictly prohibited.
+
+3. Data Storage and Security:
+   You must ensure that the system and its database are securely maintained. All biometric and personal data must be protected against unauthorized access, modification, or loss.
+
+4. Consent Management:
+   The administrator must inform individuals (e.g., students, staff) that their facial data is being used solely for attendance and identity verification purposes. Written or digital consent should be recorded where required.
+
+5. Limited Access:
+   Only authorized personnel should be allowed to access administrative functions, sensitive data, and system settings. Admin login credentials must be kept confidential at all times.
+
+6. Transparency and Accountability:
+   Individuals whose data is stored in the system have the right to know how their data is being used. Any request for data removal or review must be handled promptly and respectfully.
+
+7. Purpose Limitation:
+   Biometric data collected through this system must only be used for attendance and authorized monitoring. Using this system for surveillance or personal tracking is strictly prohibited.
+
+8. Regular Backups:
+   Administrators are encouraged to maintain regular backups of the attendance database to prevent data loss due to hardware failure or system crashes.
+
+9. System Integrity:
+   Any attempt to modify, bypass, or misuse the facial recognition system software for fraudulent attendance or manipulation will result in immediate suspension of administrative access.
+
+10. Changes to These Terms:
+   The institution or software provider reserves the right to modify these terms. Admins will be notified of any changes through system messages or email.
+
+By continuing as an administrator, you acknowledge that you have read, understood, and agreed to uphold these responsibilities and conditions.
+
+
