@@ -20,7 +20,7 @@ except ImportError:
 import mysql.connector
 from tkcalendar import DateEntry
 from datetime import datetime, timedelta
-from chatbot1 import ToolTip
+from chatbot2 import ToolTip
 
 class emailsender:
     check = False

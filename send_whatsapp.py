@@ -5,7 +5,7 @@ import mysql.connector
 from pygame import mixer
 import speech_recognition 
 import pywhatkit
-from chatbot1 import ToolTip 
+from chatbot2 import ToolTip 
 
 class msgsender:
     check=False

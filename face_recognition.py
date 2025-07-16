@@ -75,52 +75,52 @@ class face_recognition:
 
     ##########################Face recognition#######################
     def face_recog(self):
-        def draw_boundry(img,classifier,scalefactor,minNeighbors,color,text,clf):
-            gray_images=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-            features=classifier.detectMultiScale(gray_images,scalefactor,minNeighbors)
-            coord=[]
+        def draw_boundry(img, classifier, scalefactor, minNeighbors, color, text, clf):
+            gray_images = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            features = classifier.detectMultiScale(gray_images, scalefactor, minNeighbors)
+            coord = []
+            face_recognized = False  # Flag to track if a face was recognized
 
-            for(x,y,w,h) in features:
-                cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
-                id,predict=clf.predict(gray_images[y:y+h,x:x+w])
-                confidence=int((100*(1-predict/300)))
+            for (x, y, w, h) in features:
+                cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                id, predict = clf.predict(gray_images[y:y + h, x:x + w])
+                confidence = int((100 * (1 - predict / 300)))
 
-                
-                conn=mysql.connector.connect(host='localhost',username='root',password='1582',database='face_recognizer')
-                my_cursor=conn.cursor()
+                conn = mysql.connector.connect(host='localhost', username='root', password='1582', database='face_recognizer')
+                my_cursor = conn.cursor()
 
-                my_cursor.execute('select Student_name from student where Student_id='+str(id))
-                n=my_cursor.fetchone()
-                n='+'.join(n)
+                my_cursor.execute('select Student_name from student where Student_id=' + str(id))
+                n = my_cursor.fetchone()
+                n = '+'.join(n)
 
-                my_cursor.execute('select Roll from student where Student_id='+str(id))
-                r=my_cursor.fetchone()
-                r='+'.join(r)
+                my_cursor.execute('select Roll from student where Student_id=' + str(id))
+                r = my_cursor.fetchone()
+                r = '+'.join(r)
 
-                my_cursor.execute('select Dep from student where Student_id='+str(id))
-                d=my_cursor.fetchone()
-                d='+'.join(d)
+                my_cursor.execute('select Dep from student where Student_id=' + str(id))
+                d = my_cursor.fetchone()
+                d = '+'.join(d)
 
-                my_cursor.execute('select Student_id from student where Student_id='+str(id))
-                i=my_cursor.fetchone()
-                i='+'.join(i)
+                my_cursor.execute('select Student_id from student where Student_id=' + str(id))
+                i = my_cursor.fetchone()
+                i = '+'.join(i)
 
-                if confidence>77:
-                    cv2.putText(img,f'ID : {i}',(x,y-75),cv2.FONT_HERSHEY_COMPLEX,0.8,(255,255,255),3)
-                    cv2.putText(img,f'Name : {n}',(x,y-55),cv2.FONT_HERSHEY_COMPLEX,0.8,(255,255,255),3)
-                    cv2.putText(img,f'Roll No : {r}',(x,y-30),cv2.FONT_HERSHEY_COMPLEX,0.8,(255,255,255),3)
-                    cv2.putText(img,f'Department : {d}',(x,y-5),cv2.FONT_HERSHEY_COMPLEX,0.8,(255,255,255),3)
-                    self.mark_attendance(i,r,n,d)
+                if confidence > 77:
+                    cv2.putText(img, f'ID : {i}', (x, y - 75), cv2.FONT_HERSHEY_COMPLEX, 0.8, (255, 255, 255), 3)
+                    cv2.putText(img, f'Name : {n}', (x, y - 55), cv2.FONT_HERSHEY_COMPLEX, 0.8, (255, 255, 255), 3)
+                    cv2.putText(img, f'Roll No : {r}', (x, y - 30), cv2.FONT_HERSHEY_COMPLEX, 0.8, (255, 255, 255), 3)
+                    cv2.putText(img, f'Department : {d}', (x, y - 5), cv2.FONT_HERSHEY_COMPLEX, 0.8, (255, 255, 255), 3)
+                    self.mark_attendance(i, r, n, d)
+                    face_recognized = True  # Set flag to True for recognized face
                 else:
-                    cv2.rectangle(img,(x,y),(x+w,y+h),(0,0,255),3)
-                    cv2.putText(img,f'Unknown Face',(x,y-5),cv2.FONT_HERSHEY_COMPLEX,0.8,(255,255,255),3)
-                coord=[x,y,w,h]
-            return coord
-        def recognize(img,clf,faceCascade):
-            coord=draw_boundry(img=img,classifier=faceCascade,scalefactor=1.1,minNeighbors=10,color=(255,25,255),text='Face',clf=clf)
-            return img
-            
-        
+                    cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 3)
+                    cv2.putText(img, f'Unknown Face', (x, y - 5), cv2.FONT_HERSHEY_COMPLEX, 0.8, (255, 255, 255), 3)
+                coord = [x, y, w, h]
+            return coord, face_recognized  # Return both coordinates and recognition status
+
+        def recognize(img, clf, faceCascade):
+            coord, face_recognized = draw_boundry(img=img, classifier=faceCascade, scalefactor=1.1, minNeighbors=10, color=(255, 25, 255), text='Face', clf=clf)
+            return img, face_recognized
 
         faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
         clf = cv2.face.LBPHFaceRecognizer.create()
@@ -131,12 +131,12 @@ class face_recognition:
         # Step 1: Require live face BEFORE recognition
         live_verified = False
         start_time = time.time()  # Start the timer
-        messagebox.showinfo('Authentication','Detecting Liveness :',parent=self.root)
+        messagebox.showinfo('Authentication', 'Detecting Liveness:', parent=self.root)
         while not live_verified:
             ret, img = video_cap.read()
             is_live, face_rect, message = detector.detect_liveness(img)
             if time.time() - start_time > 30:
-                messagebox.showerror('Exiting','Time Limit Reached',parent=self.root)
+                messagebox.showerror('Exiting', 'Time Limit Reached', parent=self.root)
                 video_cap.release()
                 cv2.destroyAllWindows()
                 break
@@ -151,7 +151,7 @@ class face_recognition:
             else:
                 if face_rect is not None:
                     x, y, w, h = face_rect
-                    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                    cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 2)
                 cv2.putText(img, "Liveness Detection Test:", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
                 cv2.putText(img, message, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                 cv2.imshow("Liveness Detection", img)
@@ -161,18 +161,24 @@ class face_recognition:
                     return  # Exit if Enter key is pressed
 
         cv2.destroyWindow("Liveness Detection")
-
         
-        
-        
+        # Main recognition loop
         while True:
-            ret,img=video_cap.read()
-            img=recognize(img,clf,faceCascade)
-            cv2.imshow("Welcome To Face Recognition",img)
-            if cv2.waitKey(1)==13:
+            ret, img = video_cap.read()
+            img, face_recognized = recognize(img, clf, faceCascade)
+            cv2.imshow("Welcome To Face Recognition", img)
+            
+            # Show message box when face is recognized or unknown
+            if face_recognized:
+                messagebox.showinfo('Success', 'Attendance marked successfully!', parent=self.root)
                 break
+            elif cv2.waitKey(1) == 13:  # Allow manual close with Enter key
+                messagebox.showwarning('Unknown Face', 'Unknown face detected. Please try again.', parent=self.root)
+                break
+                
         video_cap.release()
         cv2.destroyAllWindows()
+
     def back(self):
         self.root.destroy()
 

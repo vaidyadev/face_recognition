@@ -10,7 +10,7 @@ import os
 import tkinter
 from time import strftime
 from datetime import datetime
-from chatbot1 import ChatBot
+from chatbot2 import ChatBot
 import pyttsx3
 from devloper import developer
 
@@ -30,9 +30,9 @@ class face_recog:
         engine.setProperty('rate',150) 
         engine.setProperty('volume', 1.0)  
         engine.setProperty('voice',voices[1].id)
-        engine.say("welcome to facial recognition attendance system please put your internet on and you must have webcam!!")
+        engine.say("welcome to facial recognition attendance system please put your internet on and you must have webcam and SQL Database!!")
         engine.runAndWait()
-        tkinter.messagebox.showwarning('Note','This application required stable internet connection and webcam',parent=self.root)
+        tkinter.messagebox.showwarning('Note','This application required stable internet connection and webcam and SQL Database',parent=self.root)
         
 
         # Define the scrolling text string here
