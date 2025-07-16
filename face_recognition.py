@@ -163,16 +163,22 @@ class face_recognition:
         cv2.destroyWindow("Liveness Detection")
         
         # Main recognition loop
+        start_time = time.time()
         while True:
             ret, img = video_cap.read()
             img, face_recognized = recognize(img, clf, faceCascade)
             cv2.imshow("Welcome To Face Recognition", img)
             
-            # Show message box when face is recognized or unknown
-            if face_recognized:
-                messagebox.showinfo('Success', 'Attendance marked successfully!', parent=self.root)
+            # Check if 5 seconds have passed
+            if time.time() - start_time >= 5:
+                if face_recognized:
+                    messagebox.showinfo('Success', 'Attendance marked successfully!', parent=self.root)
+                else:
+                    messagebox.showwarning('Unknown Face', 'Unknown face detected. Please try again.', parent=self.root)
                 break
-            elif cv2.waitKey(1) == 13:  # Allow manual close with Enter key
+                
+            # Still allow manual close with Enter key
+            if cv2.waitKey(1) == 13:
                 messagebox.showwarning('Unknown Face', 'Unknown face detected. Please try again.', parent=self.root)
                 break
                 
