@@ -6,7 +6,7 @@ import re
 import mysql.connector
 import smtplib
 from email.message import EmailMessage
-from chatbot1 import ToolTip
+from chatbot2 import ToolTip
 
 class register:
     def __init__(self,root):
@@ -165,12 +165,16 @@ class register:
         logo_label = Label(terms_window, image=self.logo_photo, bg='#f0f8ff')
         logo_label.pack(pady=(10, 0))
 
-        self.marquee_text = "  ABC Institute of Technology  •  "
+        self.marquee_text = "  FACIAL RECOGNITION ATTENDANCE SYSTEM  "
         self.marquee_label = Label(terms_window, font=("Segoe UI", 16, "bold"), bg="green", fg="red")
         self.marquee_label.pack(pady=(0, 10))
         self.animate_marquee()
 
+        back_btn = Button(terms_window, text="Back", font=('times new roman', 15, 'bold'), bg='red', fg='white',activebackground='green',activeforeground='black',
+                          cursor='hand2', command=terms_window.destroy)
+        back_btn.pack(pady=10) 
 
+        
         frame = Frame(terms_window, bg="#f0f8ff")
         frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
 
@@ -195,6 +199,9 @@ class register:
 
         terms_text.insert(END, terms)
         terms_text.config(state=DISABLED)
+
+        
+        
 
     def animate_marquee(self):
         text = self.marquee_text

@@ -45,7 +45,7 @@ class ChatBot:
         self.filtered_sessions = []  # holds filtered search results
         self.dark_mode_enabled = False
         self.root.bind('<Control-d>', lambda e: self.toggle_dark_mode())
-        self.root.after(1500, self.show_startup_tip)
+        # self.root.after(1500, self.show_startup_tip)
 
         # Initialize cache
         self.response_cache = {}
@@ -98,6 +98,11 @@ class ChatBot:
                                         command=self.toggle_history_panel,bd=0, bg='white',
                                     activebackground='white', cursor='hand2', )  
         self.hamburger_btn.place(x=5, y=5)
+
+
+        self.back_btn = Button(self.title_label, text="Back", width=12, cursor='hand2', font=('times new roman', 10, 'bold'),
+                          bg='red', fg='white', activebackground="green", command=self.back)
+        self.back_btn.place(x=850, y=50, height=25)
        
         ToolTip(self.hamburger_btn, "Toggle History Panel")
 
@@ -294,6 +299,9 @@ class ChatBot:
 
             self.language_combo.config(background='white', foreground='black')
             self.history_panel.config(style='TFrame')
+
+    def back(self):
+        self.root.destroy()
 
     def rename_session(self, index):
         session = self.history_data[index]

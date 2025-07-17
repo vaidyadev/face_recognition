@@ -3,7 +3,6 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 from tkinter import messagebox
 from register import register
-from main import face_recog
 import mysql.connector
 import smtplib
 import random
@@ -143,7 +142,7 @@ class login_window:
                 else:
                     with open('remember.txt', 'w') as f:
                         f.write("")  # Clear if not checked
-
+                from main import face_recog
                 self.root.destroy()
                 root = Tk()
                 main_app = face_recog(root)

@@ -77,12 +77,12 @@ class students:
 
     # FRAME 
         main_frame=Frame(bg_img,bd=2)
-        main_frame.place(x=10,y=50,width=1330,height=480)
+        main_frame.place(x=10,y=50,width=1330,height=500)
 
       
     # left_label frame
         left_frame=LabelFrame(main_frame,bd=2,bg='white',relief=RIDGE,text='Students Details',font=('times new roman', 12, 'bold'))
-        left_frame.place(x=10,y=10,width=645,height=460)
+        left_frame.place(x=10,y=10,width=645,height=480)
         img_left = Image.open("college_images\\AdobeStock_303989091.jpeg")
         img_left = img_left.resize((635, 130), Image.Resampling.LANCZOS)
         self.left_photoimg = ImageTk.PhotoImage(img_left)
@@ -127,7 +127,7 @@ class students:
 
      #  class student information
         class_student_frame=LabelFrame(left_frame,bd=2,bg='white',relief=RIDGE,text='Class Student Information',font=('times new roman', 12, 'bold'))
-        class_student_frame.place(x=5,y=180,width=635,height=255)
+        class_student_frame.place(x=5,y=180,width=635,height=275)
     # student id
 
         student_id_label=Label(class_student_frame,text='StudentId :',font=('times new roman', 12, 'bold'),bg='white')
@@ -200,7 +200,7 @@ class students:
     # radio buttons
 
         self.var_radio1=StringVar()
-        radiobutton1=ttk.Radiobutton(class_student_frame,variable=self.var_radio1,text='Take Photo Sample',value='yes')
+        radiobutton1=ttk.Radiobutton(class_student_frame,variable=self.var_radio1,text='Have Photo Sample',value='yes')
         radiobutton1.grid(row=6,column=0)
 
         radiobutton2=ttk.Radiobutton(class_student_frame,variable=self.var_radio1,text='No Photo Sample',value='no')
@@ -209,28 +209,28 @@ class students:
         
     # button frame
         btn_frame=Frame(class_student_frame,bd=2,relief=RIDGE,bg='white')
-        btn_frame.place(x=0,y=180,width=635,height=25)
+        btn_frame.place(x=0,y=180,width=635,height=32)
 
-        save_btn=Button(btn_frame,text="Save",width=22,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.add_data)
+        save_btn=Button(btn_frame,text="Save",width=22,cursor='hand2',height=2,font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.add_data)
         save_btn.grid(row=0,column=0)
 
-        update_btn=Button(btn_frame,text="Update",width=22,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_data)
+        update_btn=Button(btn_frame,text="Update",width=22,cursor='hand2',height=2,font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_data)
         update_btn.grid(row=0,column=1)
 
-        delete_btn=Button(btn_frame,text="Delete",width=22,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.delete_data)
+        delete_btn=Button(btn_frame,text="Delete",width=22,cursor='hand2',height=2,font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.delete_data)
         delete_btn.grid(row=0,column=2)
 
 
-        reset_btn=Button(btn_frame,text="Reset",width=20,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.reset_data)
+        reset_btn=Button(btn_frame,text="Reset",width=20,cursor='hand2',height=2,font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.reset_data)
         reset_btn.grid(row=0,column=3)
 
         btn_frame1=Frame(class_student_frame,bd=2,relief=RIDGE,bg='white')
-        btn_frame1.place(x=0,y=205,width=635,height=25)
+        btn_frame1.place(x=0,y=215,width=635,height=35)
 
-        take_photo_btn=Button(btn_frame1,text="Take Photo Sample",width=45,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.photo_sample,padx=(1.9))
+        take_photo_btn=Button(btn_frame1,text="Take Photo Sample",width=45,height=2,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.photo_sample,padx=(1.9))
         take_photo_btn.grid(row=1,column=0)
 
-        update_photo_btn=Button(btn_frame1,text="Update Photo Sample",width=45,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_photosample)
+        update_photo_btn=Button(btn_frame1,text="Update Photo Sample",height=2,width=45,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_photosample)
         update_photo_btn.grid(row=1,column=1)
 
         
@@ -242,7 +242,7 @@ class students:
 
     # right_label frame
         right_frame=LabelFrame(main_frame,bd=2,bg='white',relief=RIDGE,text='Students Details',font=('times new roman', 12, 'bold'))
-        right_frame.place(x=665,y=10,width=645,height=460)
+        right_frame.place(x=665,y=10,width=645,height=480)
 
         img_right = Image.open("college_images\\student.jpg")
         img_right = img_right.resize((635, 130), Image.Resampling.LANCZOS)
@@ -271,7 +271,7 @@ class students:
         showall_btn.grid(row=0,column=4,padx=3)
 
         table_frame=Frame(right_frame,bd=2,bg='white',relief=RIDGE)
-        table_frame.place(x=5,y=140,width=635,height=290)
+        table_frame.place(x=5,y=140,width=635,height=310)
 
         scroll_x=ttk.Scrollbar(table_frame,orient=HORIZONTAL)
         scroll_y=ttk.Scrollbar(table_frame,orient=VERTICAL)

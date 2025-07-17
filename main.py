@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import ttk
 import tkinter.messagebox
 from PIL import Image,ImageTk
+from login import login_window
 from student import students
 from train import train
 from face_recognition import face_recognition
@@ -30,9 +31,9 @@ class face_recog:
         engine.setProperty('rate',150) 
         engine.setProperty('volume', 1.0)  
         engine.setProperty('voice',voices[1].id)
-        engine.say("welcome to facial recognition attendance system please put your internet on and you must have webcam and SQL Database!!")
-        engine.runAndWait()
-        tkinter.messagebox.showwarning('Note','This application required stable internet connection and webcam and SQL Database',parent=self.root)
+        # engine.say("welcome to facial recognition attendance system please put your internet on and you must have webcam and SQL Database!!")
+        # engine.runAndWait()
+        # tkinter.messagebox.showwarning('Note','This application required stable internet connection and webcam and SQL Database',parent=self.root)
         
 
         # Define the scrolling text string here
@@ -72,7 +73,18 @@ class face_recog:
         self.update_time()  # start the clock
 
         self.title_lbl = Label(bg_img, text='', font=('times new roman', 35, 'bold'), bg='white', fg='red',borderwidth=0,highlightthickness=0)
-        self.title_lbl.place(x=120, y=0, width=1240, height=45)
+        self.title_lbl.place(x=120, y=0, width=1140, height=45)
+
+        # New frame for logout button
+        logout_frame = Frame(bg_img, bg='white')
+        logout_frame.place(x=1240, y=0, width=120, height=45)
+
+        self.back_btn = Button(logout_frame, text="Log Out", width=10, cursor='hand2',
+                            font=('times new roman', 10, 'bold'), bg='red', fg='white',
+                            activebackground="green", command=self.logout)
+        self.back_btn.pack(pady=10)
+
+
 
 
 
@@ -193,6 +205,11 @@ class face_recog:
     def devloper(self):
           self.new_window=Toplevel(self.root)
           self.app=developer(self.new_window)
+    def logout(self):
+        self.root.destroy()  # Destroy the current main window
+        new_root = Tk()      # Create a new Tkinter root window
+        app = login_window(new_root) # Initialize the login window
+        new_root.mainloop()  # Start the event loop for the new window
     def iexit(self):
             self.iexit=tkinter.messagebox.askyesno('Face Recognition','Are you sure you want to exit',parent=self.root)
             if self.iexit>0:
