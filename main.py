@@ -31,6 +31,8 @@ class face_recog:
         engine.setProperty('rate',150) 
         engine.setProperty('volume', 1.0)  
         engine.setProperty('voice',voices[1].id)
+        self.time_after_id = None
+        self.slider_after_id = None
         # engine.say("welcome to facial recognition attendance system please put your internet on and you must have webcam and SQL Database!!")
         # engine.runAndWait()
         # tkinter.messagebox.showwarning('Note','This application required stable internet connection and webcam and SQL Database',parent=self.root)
@@ -176,16 +178,15 @@ class face_recog:
         # Start the slider after initializing everything
         self.slider()
 
-    
-
     def slider(self):
         if self.count == len(self.s):
             self.count = 0
-            self.text = ''# restarting the string after completion of one iteration
+            self.text = ''
         self.text += self.s[self.count]
         self.title_lbl.config(text=self.text)
         self.count += 1
-        self.title_lbl.after(300, self.slider)  # animate
+        self.slider_after_id = self.title_lbl.after(300, self.slider)
+
     #####################Function button###########################
     def studuent_detail(self):
             self.new_window=Toplevel(self.root)
@@ -206,10 +207,17 @@ class face_recog:
           self.new_window=Toplevel(self.root)
           self.app=developer(self.new_window)
     def logout(self):
+        # Cancel the scheduled after callbacks before destroying the root
+        if self.time_after_id:
+            self.time_lbl.after_cancel(self.time_after_id)
+        if self.slider_after_id:
+            self.title_lbl.after_cancel(self.slider_after_id)
+
         self.root.destroy()  # Destroy the current main window
-        new_root = Tk()      # Create a new Tkinter root window
-        app = login_window(new_root) # Initialize the login window
-        new_root.mainloop()  # Start the event loop for the new window
+        new_root = Tk()
+        app = login_window(new_root)
+        new_root.mainloop()
+
     def iexit(self):
             self.iexit=tkinter.messagebox.askyesno('Face Recognition','Are you sure you want to exit',parent=self.root)
             if self.iexit>0:
@@ -222,7 +230,8 @@ class face_recog:
     def update_time(self):
         current_time = strftime('%I:%M:%S %p')
         self.time_lbl.config(text=current_time)
-        self.time_lbl.after(1000, self.update_time)  # call again after 1 second
+        self.time_after_id = self.time_lbl.after(1000, self.update_time)
+
 
 
 if __name__ == '__main__':
