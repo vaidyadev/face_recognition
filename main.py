@@ -33,9 +33,9 @@ class face_recog:
         engine.setProperty('voice',voices[1].id)
         self.time_after_id = None
         self.slider_after_id = None
-        # engine.say("welcome to facial recognition attendance system please put your internet on and you must have webcam and SQL Database!!")
-        # engine.runAndWait()
-        # tkinter.messagebox.showwarning('Note','This application required stable internet connection and webcam and SQL Database',parent=self.root)
+        engine.say("welcome to facial recognition attendance system please put your internet on and you must have webcam and SQL Database!!")
+        engine.runAndWait()
+        tkinter.messagebox.showwarning('Note','This application required stable internet connection and webcam and SQL Database',parent=self.root)
         
 
         # Define the scrolling text string here
@@ -207,16 +207,43 @@ class face_recog:
           self.new_window=Toplevel(self.root)
           self.app=developer(self.new_window)
     def logout(self):
-        # Cancel the scheduled after callbacks before destroying the root
+        # Ask for confirmation
+        confirm = tkinter.messagebox.askyesno("Logout", "Are you sure you want to logout?", parent=self.root)
+        if not confirm:
+            return
+
+        # Cancel the scheduled after callbacks
         if self.time_after_id:
             self.time_lbl.after_cancel(self.time_after_id)
         if self.slider_after_id:
             self.title_lbl.after_cancel(self.slider_after_id)
 
-        self.root.destroy()  # Destroy the current main window
-        new_root = Tk()
-        app = login_window(new_root)
-        new_root.mainloop()
+        # Start fade-out animation
+        self.fade_out()
+
+    def fade_out(self, alpha=1.0):
+        if alpha > 0:
+            alpha -= 0.05
+            self.root.attributes("-alpha", alpha)
+            self.root.after(50, self.fade_out, alpha)
+        else:
+            self.root.destroy()
+            new_root = Tk()
+            new_root.attributes("-alpha", 0)  # Start hidden
+            app = login_window(new_root)
+
+            def fade_in(alpha=0.0):
+                if alpha < 1.0:
+                    alpha += 0.05
+                    new_root.attributes("-alpha", alpha)
+                    new_root.after(50, fade_in, alpha)
+                else:
+                    new_root.attributes("-alpha", 1.0)
+
+            fade_in()
+            new_root.mainloop()
+
+
 
     def iexit(self):
             self.iexit=tkinter.messagebox.askyesno('Face Recognition','Are you sure you want to exit',parent=self.root)
