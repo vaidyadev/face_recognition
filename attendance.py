@@ -11,7 +11,8 @@ from collections import defaultdict
 import matplotlib.cm as cm
 import numpy as np
 from informing import Inform
-
+import matplotlib
+matplotlib.use('TkAgg')
 
 mydata=[]
 class attendance:
@@ -188,11 +189,13 @@ class attendance:
         self.attendence_table.pack(fill=BOTH,expand=1)
         self.attendence_table.bind('<ButtonRelease>',self.get_cursor)
 #############################fetch data########################
+
     def fetch_data(self,rows):
         self.attendence_table.delete(*self.attendence_table.get_children())
         for i in rows:
             self.attendence_table.insert('',END,values=i)
 ############Import csv#################
+
     def import_csv(self):
         global mydata
         mydata.clear()
@@ -206,6 +209,7 @@ class attendance:
                 mydata.append(i)
             self.fetch_data(mydata)
 ###########Export csv######################
+
     def export_csv(self):
         try:
             if len(mydata)<1:
@@ -221,6 +225,7 @@ class attendance:
                 messagebox.showinfo('Data Exported','Your data is succesfully exported to '+ os.path.basename(file_name) + ' successfully',parent=self.root)
         except Exception as e:
             messagebox.showerror('Error',f'Failed to export data due to {str(e)}',parent=self.root)
+
     def get_cursor(self,event=''):
         cursor_row=self.attendence_table.focus()
         content=self.attendence_table.item(cursor_row)
@@ -232,6 +237,7 @@ class attendance:
         self.var_atten_time.set(rows[4])
         self.var_atten_date.set(rows[5])
         self.var_atten_status.set(rows[6])
+
     def reset_data(self):
         self.var_atten_id.set('')
         self.var_atten_name.set('')
@@ -240,6 +246,7 @@ class attendance:
         self.var_atten_time.set('')
         self.var_atten_date.set('')
         self.var_atten_status.set('Status')
+
     def update_data(self):
           try:
             selected = self.attendence_table.focus()
@@ -267,10 +274,6 @@ class attendance:
           except Exception as e:
                 messagebox.showerror("Error", f"Failed to update CSV file: due to {str(e)}", parent=self.root)
 
-   
-
-   
-
     def plot_attendance_graph(self):
         # Check if there's any data to plot
         if len(mydata) < 1:
@@ -296,7 +299,7 @@ class attendance:
         names = list(attendance_count.keys())
         counts = list(attendance_count.values())
         # Generate a colormap with a different color for each bar
-        colors = cm.get_cmap('tab10', len(names))  # You can use 'tab20', 'Set3', etc.
+        colors = plt.colormaps['tab10'].resampled(len(names))  # You can use 'tab20', 'Set3', etc.
         
 
 
