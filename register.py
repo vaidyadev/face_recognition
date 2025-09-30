@@ -237,7 +237,7 @@ class register:
             self.var_lname.set(self.var_lname.get().title())
 
             try:
-                conn=mysql.connector.connect(host='localhost',username='root',password='1582',database='face_recognizer')
+                conn=mysql.connector.connect(host='localhost',port="3307",username='root',password='1582',database='face_recognizer')
                 my_cursor=conn.cursor()
                 query=('select * from register where email=%s')
                 value=(self.var_email.get(),)

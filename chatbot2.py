@@ -20,7 +20,7 @@ import matplotlib
 matplotlib.use("Agg")
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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",
+    api_key="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",
 )
 latex_inline_pattern = re.compile(r'\\\((.*?)\\\)')
 latex_block_pattern = re.compile(r'\\\[(.*?)\\\]', re.DOTALL)

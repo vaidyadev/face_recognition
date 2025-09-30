@@ -162,6 +162,7 @@ class emailsender:
         try:
             self.conn = mysql.connector.connect(
                 host="localhost",
+                port=3307,
                 user="root",
                 password="1582",
                 database="face_recognizer"

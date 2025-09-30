@@ -342,7 +342,7 @@ class students:
         
         else:
             try:
-                conn=mysql.connector.connect(host='localhost',username='root',password='1582',database='face_recognizer')
+                conn=mysql.connector.connect(host='localhost',port=3307,username='root',password='1582',database='face_recognizer')
                 my_cursor=conn.cursor()
                 my_cursor.execute('insert into student values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
                                 (self.var_dep.get(),
@@ -371,7 +371,7 @@ class students:
     ####################fetch data and display it on tree view table area###############
     def fetch_data(self):
         
-        conn = mysql.connector.connect(host='localhost', username='root', password='1582', database='face_recognizer')
+        conn = mysql.connector.connect(host='localhost',port=3307, username='root', password='1582', database='face_recognizer')
         my_cursor = conn.cursor()  
         my_cursor.execute('select * from student')
         data = my_cursor.fetchall()  # Fetch all rows from the result
@@ -430,7 +430,7 @@ class students:
             try:
                 update=messagebox.askyesno("Update",'Do you want to update data',parent=self.root)
                 if update>0:
-                    conn=mysql.connector.connect(host='localhost',username='root',password='1582',database='face_recognizer')
+                    conn=mysql.connector.connect(host='localhost',port=3307,username='root',password='1582',database='face_recognizer')
                     my_cursor=conn.cursor()
                     my_cursor.execute('update student set Dep=%s,Course=%s,Year=%s,Semester=%s,Student_name=%s,Division=%s,Roll=%s,Gender=%s,Dob=%s,Email=%s,Phone=%s,Address=%s,Teacher=%s,PhotoSample=%s where Student_id=%s',(
                                 self.var_dep.get(),
@@ -467,7 +467,7 @@ class students:
             try:
                 delete=messagebox.askyesno("Delete",'Do you want to delete data',parent=self.root)
                 if delete>0:
-                    conn=mysql.connector.connect(host='localhost',username='root',password='1582',database='face_recognizer')
+                    conn=mysql.connector.connect(host='localhost',port=3307,username='root',password='1582',database='face_recognizer')
                     my_cursor=conn.cursor()
                     sql='delete from student where Student_id=%s'
                     val=(self.va_std_id.get(),)
@@ -495,7 +495,7 @@ class students:
                 "Phone_No":"Phone"
                 }
                 search_column = column_map.get(self.var_search_combo.get())
-                conn = mysql.connector.connect(host="localhost", username="root", password="1582", database="face_recognizer")
+                conn = mysql.connector.connect(host="localhost", port=3307,username="root", password="1582", database="face_recognizer")
                 my_cursor = conn.cursor()
                 query = f"SELECT * FROM student WHERE {search_column} LIKE %s"
                 value = (f"%{self.var_search_entry.get()}%",)
@@ -551,7 +551,7 @@ class students:
 
         else:
             try:
-                 conn=mysql.connector.connect(host='localhost',username='root',password='1582',database='face_recognizer')
+                 conn=mysql.connector.connect(host='localhost',port=3307,username='root',password='1582',database='face_recognizer')
                  my_cursor=conn.cursor()
                  my_cursor.execute('select * from student')
                  myresult=my_cursor.fetchall()
@@ -629,7 +629,7 @@ class students:
             return
 
         try:
-            conn = mysql.connector.connect(host="localhost", username="root", password="1582", database="face_recognizer")
+            conn = mysql.connector.connect(host="localhost",port=3307, username="root", password="1582", database="face_recognizer")
             my_cursor = conn.cursor()
             student_id = self.va_std_id.get()
             my_cursor.execute("SELECT * FROM student WHERE Student_id=%s", (student_id,))

@@ -117,7 +117,7 @@ class login_window:
         if self.txt.get() == '' or self.passw.get() == '':
             messagebox.showerror('Error', 'All fields are required!')
         else:
-            conn = mysql.connector.connect(host='localhost', username='root', password='1582', database='face_recognizer')
+            conn = mysql.connector.connect(host='localhost',port="3307", username='root', password='1582', database='face_recognizer')
             my_cursor = conn.cursor()
             my_cursor.execute('select * from register where email=%s and password=%s', (
                 self.var_email.get(),
@@ -236,7 +236,7 @@ class login_window:
         if self.txt.get() == '':
             messagebox.showerror('Error', 'Please enter the email address to reset password')
         else:
-            conn = mysql.connector.connect(host='localhost', username='root', password='1582', database='face_recognizer')
+            conn = mysql.connector.connect(host='localhost',port=3307, username='root', password='1582', database='face_recognizer')
             my_cursor = conn.cursor()
             query = 'select * from register where email=%s'
             value = (self.txt.get(),)
@@ -324,7 +324,7 @@ class login_window:
             return
 
         # Verify the answer in the database
-        conn = mysql.connector.connect(host='localhost', username='root', password='1582', database='face_recognizer')
+        conn = mysql.connector.connect(host='localhost',port=3307, username='root', password='1582', database='face_recognizer')
         my_cursor = conn.cursor()
         query = 'select * from register where email=%s and securityq=%s and securitya=%s'
         my_cursor.execute(query, (self.txt.get(), sec_q, sec_a))
@@ -443,7 +443,7 @@ class login_window:
 
             return
 
-        conn = mysql.connector.connect(host='localhost', username='root', password='1582', database='face_recognizer')
+        conn = mysql.connector.connect(host='localhost',port=3307, username='root', password='1582', database='face_recognizer')
         my_cursor = conn.cursor()
         query = 'update register set password=%s where email=%s'
         value = (self.new_passw.get(), self.txt.get())
