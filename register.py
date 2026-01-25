@@ -6,7 +6,7 @@ import re
 import mysql.connector
 import smtplib
 from email.message import EmailMessage
-from chatbot2 import ToolTip
+from tooltip import ToolTip
 
 class register:
     def __init__(self,root):
@@ -148,6 +148,16 @@ class register:
         self.photoimg2 = ImageTk.PhotoImage(img2)
         login_img = Button(frame, image=self.photoimg2,bg='white',borderwidth=0,cursor='hand2',font=('times new roman',15,'bold'),activebackground='white',command=self.login_now)
         login_img.place(x=450, y=440, width=150)
+        ToolTip(register_img, "Shortcut: Ctrl + Enter")
+        ToolTip(login_img, "Shortcut: Ctrl + L")
+                # Keyboard shortcuts
+        self.root.bind("<Control-Return>", lambda e: self.register())
+        self.root.bind("<Control-l>", lambda e: self.login_now())
+
+        # Show shortcuts info on startup
+        # self.root.after(500, self.show_shortcuts_info)
+
+
 
     #####################Functions################################
 
@@ -291,6 +301,15 @@ class register:
             color = "red"
 
         self.strength_label.config(text=f"Strength: {strength}", fg=color)
+
+    def show_shortcuts_info(self):
+        messagebox.showinfo(
+            "Keyboard Shortcuts",
+            "Available Shortcuts:\n\n"
+            "Ctrl + Enter  → Register\n"
+            "Ctrl + L        → Login"
+        )
+
  
     def toggle_password(self):
         if self.password_visible:

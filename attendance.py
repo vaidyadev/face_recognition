@@ -1,353 +1,1064 @@
 from time import strftime
 from tkinter import *
 from tkinter import ttk
-from PIL import Image,ImageTk
+from PIL import Image, ImageTk
 from tkinter import messagebox
-import os
-import csv
-from tkinter import filedialog
-import matplotlib.pyplot as plt
-from collections import defaultdict
-import matplotlib.cm as cm
-import numpy as np
-from informing import Inform
+import mysql.connector
+import cv2
+import calendar
+import datetime
+import tkinter as tk
 import matplotlib
+import csv
+import json
+from tkinter import filedialog
+from openpyxl import Workbook
+from informing import Inform
+from attendancereport import DetailedAttendanceReport
 matplotlib.use('TkAgg')
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+# Global list to hold data for filtering/sorting in memory
+mydata = []
 
-mydata=[]
+class DatePickerDialog:
+    def __init__(self, parent, initial_date, callback):
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Select Date")
+        self.dialog.transient(parent)
+        try:
+            self.dialog.iconbitmap('college_images\\bg1.ico')
+        except:
+            pass
+        self.dialog.grab_set()
+        
+        self.initial_date = initial_date
+        self.callback = callback
+        self.selected_date = initial_date
+        self.current_display_date = initial_date 
+        
+        self.setup_ui()
+        
+        self.dialog.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
+        y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
+        self.dialog.geometry(f"+{x}+{y}")
+        
+
+    def setup_ui(self):
+        # Header Frame with Color
+        header_frame = tk.Frame(self.dialog, bg="#4a90e2", pady=10)
+        header_frame.pack(fill=tk.X)
+        
+        # Navigation
+        nav_frame = ttk.Frame(self.dialog)
+        nav_frame.pack(pady=10)
+        
+        months = list(calendar.month_name)[1:]
+        self.month_var = tk.StringVar()
+        self.month_combobox = ttk.Combobox(nav_frame, textvariable=self.month_var, values=months, state='readonly', width=12, font=('Segoe UI', 10))
+        self.month_combobox.pack(side=tk.LEFT, padx=5)
+        self.month_combobox.bind("<<ComboboxSelected>>", self.change_month)
+        
+        current_year = datetime.date.today().year
+        years = list(range(1990, current_year + 5))
+        self.year_var = tk.StringVar()
+        self.year_combobox = ttk.Combobox(nav_frame, textvariable=self.year_var, values=years, state='readonly', width=8, font=('Segoe UI', 10))
+        self.year_combobox.pack(side=tk.LEFT, padx=5)
+        self.year_combobox.bind("<<ComboboxSelected>>", self.change_year)
+        
+        # Colorful Navigation Buttons
+        tk.Button(nav_frame, text="◀", bg="#f39c12", fg="white", font=('bold'), command=self.prev_month, cursor="hand2", relief=FLAT).pack(side=tk.LEFT, padx=5)
+        tk.Button(nav_frame, text="▶", bg="#f39c12", fg="white", font=('bold'), command=self.next_month, cursor="hand2", relief=FLAT).pack(side=tk.LEFT, padx=5)
+        
+        self.calendar_frame = ttk.Frame(self.dialog)
+        self.calendar_frame.pack(padx=10, pady=5)
+        self.update_calendar()
+        
+        # Select Button
+        tk.Button(self.dialog, text="Select Date", command=self.on_select, bg="#27ae60", fg="white", font=('Segoe UI', 10, 'bold'), cursor="hand2", relief=FLAT, padx=20, pady=5).pack(pady=10)
+    
+    def change_month(self, event):
+        selected_month = list(calendar.month_name).index(self.month_var.get())
+        self.current_display_date = self.current_display_date.replace(month=selected_month)
+        self.update_calendar()
+
+    def change_year(self, event):
+        selected_year = int(self.year_var.get())
+        self.current_display_date = self.current_display_date.replace(year=selected_year)
+        self.update_calendar()
+
+    def update_calendar(self):
+        for widget in self.calendar_frame.winfo_children():
+            widget.destroy()
+        days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        for i, day in enumerate(days):
+            # Colorful Header for Days
+            label = tk.Label(self.calendar_frame, text=day, font=('Segoe UI', 9, 'bold'),
+                              bg='#34495e', fg='white', width=5)
+            label.grid(row=0, column=i, sticky='nsew', padx=1, pady=1)
+            
+        cal = calendar.monthcalendar(self.current_display_date.year, self.current_display_date.month)
+        for week_num, week in enumerate(cal, 1):
+            for day_num, day in enumerate(week):
+                if day == 0: continue
+                date_obj = datetime.date(self.current_display_date.year, self.current_display_date.month, day)
+                today = datetime.date.today()
+                is_future = date_obj > today
+                
+                # Default Colors
+                bg_color = 'white'
+                fg_color = 'black'
+                
+                # Highlight Logic
+                if date_obj == datetime.date.today():
+                    bg_color = '#e74c3c' # Red for today
+                    fg_color = 'white'
+                elif date_obj == self.selected_date:
+                    bg_color = '#3498db' # Blue for selected
+                    fg_color = 'white'
+                elif day_num >= 5: # Weekends (Sat=5, Sun=6)
+                    bg_color = '#fce4ec' # Light Pink
+                    
+                btn = tk.Button(self.calendar_frame, text=str(day), bg=bg_color, fg=fg_color, font=('Segoe UI', 9),
+                relief=tk.FLAT, state=tk.DISABLED if is_future else tk.NORMAL, cursor="hand2", command=lambda d=date_obj: self.set_selected_date(d))
+                btn.grid(row=week_num, column=day_num, sticky='nsew', padx=1, pady=1)
+                
+        for i in range(7): self.calendar_frame.columnconfigure(i, weight=1)
+        for i in range(len(cal) + 1): self.calendar_frame.rowconfigure(i, weight=1)
+        self.month_var.set(self.current_display_date.strftime('%B'))
+        self.year_var.set(str(self.current_display_date.year))
+
+    def set_selected_date(self, date_obj):
+        self.selected_date = date_obj
+        self.update_calendar()
+
+    def prev_month(self):
+        if self.current_display_date.month == 1:
+            self.current_display_date = self.current_display_date.replace(year=self.current_display_date.year - 1, month=12)
+        else:
+            self.current_display_date = self.current_display_date.replace(month=self.current_display_date.month - 1)
+        self.update_calendar()
+
+    def next_month(self):
+        today = datetime.date.today()
+        next_year = self.current_display_date.year
+        next_month = self.current_display_date.month + 1
+        if next_month == 13:
+            next_month = 1
+            next_year += 1
+        if datetime.date(next_year, next_month, 1) <= today:
+            self.current_display_date = self.current_display_date.replace(year=next_year, month=next_month)
+            self.update_calendar()
+
+    def on_select(self):
+        self.callback(self.selected_date)
+        self.dialog.destroy()
+
+class TimePickerDialog:
+    def __init__(self, parent, initial_time, callback):
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Select Time")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+
+        try:
+            self.dialog.iconbitmap('college_images\\bg1.ico')
+        except:
+            pass
+
+        self.callback = callback
+
+        # Parse initial time
+        try:
+            t = datetime.datetime.strptime(initial_time, "%I:%M:%S %p")
+            h, m, s, ap = t.hour, t.minute, t.second, "AM" if t.hour < 12 else "PM"
+        except:
+            now = datetime.datetime.now()
+            h, m, s, ap = now.hour, now.minute, now.second, "AM" if now.hour < 12 else "PM"
+
+        self.hour = tk.IntVar(value=h if h <= 12 else h - 12)
+        self.minute = tk.IntVar(value=m)
+        self.second = tk.IntVar(value=s)
+        self.ampm = tk.StringVar(value=ap)
+
+        self.build_ui()
+
+    def build_ui(self):
+        frame = Frame(self.dialog, padx=20, pady=20)
+        frame.pack(expand=True)
+
+        Spinbox(frame, from_=1, to=12, width=5,
+                font=('times new roman', 14),
+                textvariable=self.hour).grid(row=0, column=0)
+
+        Label(frame, text=":", font=('times new roman', 14)).grid(row=0, column=1)
+
+        Spinbox(frame, from_=0, to=59, width=5, format="%02.0f",
+                font=('times new roman', 14),
+                textvariable=self.minute).grid(row=0, column=2)
+
+        Label(frame, text=":", font=('times new roman', 14)).grid(row=0, column=3)
+
+        Spinbox(frame, from_=0, to=59, width=5, format="%02.0f",
+                font=('times new roman', 14),
+                textvariable=self.second).grid(row=0, column=4)
+
+        ttk.Combobox(
+            frame,
+            values=("AM", "PM"),
+            width=5,
+            font=('times new roman', 13),
+            state="readonly",
+            textvariable=self.ampm
+        ).grid(row=0, column=5, padx=10)
+
+        Button(
+            self.dialog,
+            text="Select Time",
+            bg="#27ae60",
+            fg="white",
+            font=('times new roman', 12, 'bold'),
+            width=15,
+            cursor="hand2",
+            command=self.on_select
+        ).pack(pady=15)
+
+    def on_select(self):
+        h = self.hour.get()
+        m = self.minute.get()
+        s = self.second.get()
+
+        # Convert to 24-hour
+        if self.ampm.get() == "PM" and h != 12:
+            h += 12
+        if self.ampm.get() == "AM" and h == 12:
+            h = 0
+
+        selected_time = datetime.datetime.now().replace(
+            hour=h, minute=m, second=s, microsecond=0
+        )
+
+        current_time = datetime.datetime.now().replace(microsecond=0)
+
+        # 🚫 Future time check
+        if selected_time > current_time:
+            messagebox.showerror(
+                "Invalid Time",
+                "Selected time cannot be greater than current time.",
+                parent=self.dialog
+            )
+            return
+
+        final_time = selected_time.strftime("%H:%M:%S")  # 24-hour format
+        self.callback(final_time)
+        self.dialog.destroy()
+
 class attendance:
     def __init__(self, root):
-        
         self.root = root
         self.root.geometry("1360x680+0+0")
-        # self.root.geometry("1530x790+0+0")
-        self.root.title("Face Recognition System")
+        self.root.title("Attendance Management System")
         self.root.resizable(False, False)
-        self.root.wm_iconbitmap('college_images\\bg1.ico')
-    ################Text Variable#######################################
-        self.var_atten_id=StringVar()
-        self.var_atten_name=StringVar()
-        self.var_atten_roll=StringVar()
-        self.var_atten_dept=StringVar()
-        self.var_atten_time=StringVar()
-        self.var_atten_date=StringVar()
-        self.var_atten_status=StringVar()
+        try:
+            self.root.wm_iconbitmap('college_images\\bg1.ico')
+        except:
+            pass
 
-        img = Image.open("college_images\\smart-attendance.jpg")
-        img = img.resize((625, 170), Image.Resampling.LANCZOS)
-        self.photoimg = ImageTk.PhotoImage(img)
-        f_lbl = Label(self.root, image=self.photoimg)
-        f_lbl.place(x=0, y=0, width=625, height=170)
+        # --- Variables ---
+        self.var_atten_id = StringVar()
+        self.var_atten_name = StringVar()
+        self.var_atten_roll = StringVar()
+        self.var_atten_dept = StringVar()
+        self.var_atten_time = StringVar()
+        self.var_atten_date = StringVar()
+        self.var_atten_status = StringVar()
+        
+        # Filter Variables
+        self.filter_from_date = StringVar()
+        self.filter_to_date = StringVar()
+        self.active_filters = {
+            "Status": [],
+            "Department": [],
+            "DateRange": []
+        }
 
-        img1 = Image.open("college_images\\12.jpg")
-        img1 = img1.resize((735, 170), Image.Resampling.LANCZOS)
-        self.photoimg1 = ImageTk.PhotoImage(img1)
-        f_lbl1 = Label(self.root, image=self.photoimg1)
-        f_lbl1.place(x=625, y=0, width=735, height=170)
+        # Search variables
+        self.var_search_combo = StringVar()
+        self.var_search_entry = StringVar()
 
-        #background
-        img3 = Image.open("college_images\\wp2551980.jpg")
-        img3 = img3.resize((1360, 560), Image.Resampling.LANCZOS)
-        self.photoimg3 = ImageTk.PhotoImage(img3)
-        bg_img = Label(self.root, image=self.photoimg3)
-        bg_img.place(x=0, y=170, width=1360, height=510)
+        # --- Database Setup ---
+        self.setup_database()
+
+        # --- UI Header ---
+        try:
+            img = Image.open("college_images\\smart-attendance.jpg")
+            img = img.resize((625, 170), Image.Resampling.LANCZOS)
+            self.photoimg = ImageTk.PhotoImage(img)
+            f_lbl = Label(self.root, image=self.photoimg)
+            f_lbl.place(x=0, y=0, width=625, height=170)
+
+            img1 = Image.open("college_images\\12.jpg")
+            img1 = img1.resize((735, 170), Image.Resampling.LANCZOS)
+            self.photoimg1 = ImageTk.PhotoImage(img1)
+            f_lbl1 = Label(self.root, image=self.photoimg1)
+            f_lbl1.place(x=625, y=0, width=735, height=170)
+
+            img3 = Image.open("college_images\\wp2551980.jpg")
+            img3 = img3.resize((1360, 560), Image.Resampling.LANCZOS)
+            self.photoimg3 = ImageTk.PhotoImage(img3)
+            bg_img = Label(self.root, image=self.photoimg3)
+            bg_img.place(x=0, y=170, width=1360, height=510)
+        except Exception as e:
+             bg_img = Frame(self.root, bg='white')
+             bg_img.place(x=0, y=170, width=1360, height=510)
 
         self.title_lbl = Label(bg_img, text='ATTENDANCE MANAGEMENT SYSTEM', font=('times new roman', 35, 'bold'), bg='white', fg='green')
         self.title_lbl.place(x=0, y=0, width=1360, height=45)
 
-        self.time_lbl = Label(bg_img, font=('times new roman', 15, 'bold'), bg='white', fg='red',borderwidth=0,highlightthickness=0)
+        self.time_lbl = Label(bg_img, font=('times new roman', 15, 'bold'), bg='white', fg='red', borderwidth=0, highlightthickness=0)
         self.time_lbl.place(x=0, y=0, width=120, height=45)
-        self.update_time()  # start the clock
+        self.update_time()
 
-        back_btn=Button(self.title_lbl,text="Back",width=22,cursor='hand2',font=('times new roman', 10, 'bold'), bg='red', fg='white',activebackground="green",command=self.back)
-        back_btn.place(x=1150,y=10,height=25)
+        back_btn = Button(self.title_lbl, text="Back", width=22, cursor='hand2', font=('times new roman', 10, 'bold'), bg='red', fg='white', activebackground="green", command=self.back)
+        back_btn.place(x=1150, y=10, height=25)
 
-        # FRAME 
-        main_frame=Frame(bg_img,bd=2)
-        main_frame.place(x=10,y=50,width=1330,height=460)
+        # --- Main Frame ---
+        main_frame = Frame(bg_img, bd=2)
+        main_frame.place(x=10, y=50, width=1330, height=460)
 
-      
-    # left_label frame
-        left_frame=LabelFrame(main_frame,bd=2,bg='white',relief=RIDGE,text='Students Attendance Details',font=('times new roman', 12, 'bold'))
-        left_frame.place(x=10,y=10,width=645,height=440)
-       
-        img_left = Image.open("college_images\\face-recognition.png")
-        img_left = img_left.resize((635, 90), Image.Resampling.LANCZOS)
-        self.left_photoimg = ImageTk.PhotoImage(img_left)
-        f_lbl = Label(left_frame, image=self.left_photoimg)
-        f_lbl.place(x=5, y=0, width=635, height=90)
-    # left inside frame
-        left_inside_frame=Frame(left_frame,bd=2,relief=RIDGE,bg='white')
-        left_inside_frame.place(x=0,y=95,width=640,height=350)
+        # --- Left Frame (Controls) ---
+        left_frame = LabelFrame(main_frame, bd=2, bg='white', relief=RIDGE, text='Students Attendance Details', font=('times new roman', 12, 'bold'))
+        left_frame.place(x=10, y=10, width=645, height=440)
 
-    # label and entry
-    #attendance
-        attendance_id_label=Label(left_inside_frame,text='AttendenceId :',font=('times new roman', 12, 'bold'),bg='white')
-        attendance_id_label.grid(row=0,column=0,padx=5,sticky=W)
+        try:
+            img_left = Image.open("college_images\\face-recognition.png")
+            img_left = img_left.resize((635, 90), Image.Resampling.LANCZOS)
+            self.left_photoimg = ImageTk.PhotoImage(img_left)
+            f_lbl = Label(left_frame, image=self.left_photoimg)
+            f_lbl.place(x=5, y=0, width=635, height=90)
+        except:
+            pass
 
-        attendanceid_entry=ttk.Entry(left_inside_frame,width=15,font=('times new roman', 15, 'bold'),textvariable=self.var_atten_id)
-        attendanceid_entry.grid(row=0,column=1,padx=5,pady=3,sticky=W)
+        left_inside_frame = Frame(left_frame, bd=2, relief=RIDGE, bg='white')
+        left_inside_frame.place(x=0, y=95, width=640, height=320)
 
-     #Name
-        name_label=Label(left_inside_frame,text='Name :',font=('times new roman', 12, 'bold'),bg='white')
-        name_label.grid(row=0,column=3,padx=5,sticky=W)
+        # Inputs
+        # Attendance ID
+        Label(left_inside_frame, text='AttendanceID:', font=('times new roman', 12, 'bold'), bg='white').grid(row=0, column=0, padx=5, sticky=W)
+        ttk.Entry(left_inside_frame, width=15, font=('times new roman', 12), textvariable=self.var_atten_id).grid(row=0, column=1, padx=5, pady=3, sticky=W)
+        
+        # Name
+        Label(left_inside_frame, text='Name:', font=('times new roman', 12, 'bold'), bg='white').grid(row=0, column=2, padx=5, sticky=W)
+        ttk.Entry(left_inside_frame, width=15, font=('times new roman', 12), textvariable=self.var_atten_name).grid(row=0, column=3, padx=5, pady=3, sticky=W)
+        
+        # Roll
+        Label(left_inside_frame, text='Roll No:', font=('times new roman', 12, 'bold'), bg='white').grid(row=1, column=0, padx=5, sticky=W)
+        ttk.Entry(left_inside_frame, width=15, font=('times new roman', 12), textvariable=self.var_atten_roll).grid(row=1, column=1, padx=5, pady=3, sticky=W)
+        
+        # Dept
+        Label(left_inside_frame, text='Department:', font=('times new roman', 12, 'bold'), bg='white')\
+            .grid(row=1, column=2, padx=5, sticky=W)
 
-        name_entry=ttk.Entry(left_inside_frame,width=15,font=('times new roman', 15, 'bold'),textvariable=self.var_atten_name)
-        name_entry.grid(row=0,column=4,padx=5,pady=3,sticky=W)
-    
-     #Roll
-        roll_label=Label(left_inside_frame,text='Roll NO :',font=('times new roman', 12, 'bold'),bg='white')
-        roll_label.grid(row=1,column=0,padx=5,sticky=W)
+        dept_combo = ttk.Combobox(
+            left_inside_frame,
+            font=('times new roman', 12, 'bold'),
+            width=17,
+            state='readonly',
+            textvariable=self.var_atten_dept
+        )
+        dept_combo['values'] = ("Computer", "IT", "Civil", "Mechenical")
+        dept_combo.set("Select Department")
+        dept_combo.grid(row=1, column=3, padx=5, pady=3, sticky=W)
 
-        roll_entry=ttk.Entry(left_inside_frame,width=15,font=('times new roman', 15, 'bold'),textvariable=self.var_atten_roll)
-        roll_entry.grid(row=1,column=1,padx=5,pady=3,sticky=W)
-    #Department
-        department_label=Label(left_inside_frame,text='Department :',font=('times new roman', 12, 'bold'),bg='white')
-        department_label.grid(row=1,column=3,padx=5,sticky=W)
+        
+        # Time
+        Label(left_inside_frame, text='Time:HH:MM:SS(24-hour)', font=('times new roman', 9, 'bold'), bg='white')\
+        .grid(row=2, column=0, padx=5, sticky=W)
 
-        department_entry=ttk.Entry(left_inside_frame,width=15,font=('times new roman', 15, 'bold'),textvariable=self.var_atten_dept)
-        department_entry.grid(row=1,column=4,padx=5,pady=3,sticky=W)
-     #Time
-        time_label=Label(left_inside_frame,text='Time :',font=('times new roman', 12, 'bold'),bg='white')
-        time_label.grid(row=2,column=0,padx=5,sticky=W)
+        time_frame = Frame(left_inside_frame, bg='white')
+        time_frame.grid(row=2, column=1, padx=5, pady=3, sticky=W)
 
-        time_entry=ttk.Entry(left_inside_frame,width=15,font=('times new roman', 15, 'bold'),textvariable=self.var_atten_time)
-        time_entry.grid(row=2,column=1,padx=5,pady=3,sticky=W)
-    #Date
-        date_label=Label(left_inside_frame,text='Date :',font=('times new roman', 12, 'bold'),bg='white')
-        date_label.grid(row=2,column=3,padx=5,sticky=W)
+        ttk.Entry(
+            time_frame, width=12, font=('times new roman', 12),
+            textvariable=self.var_atten_time, state='readonly'
+        ).pack(side=LEFT)
 
-        date_entry=ttk.Entry(left_inside_frame,width=15,font=('times new roman', 15, 'bold'),textvariable=self.var_atten_date)
-        date_entry.grid(row=2,column=4,padx=5,pady=3,sticky=W)
+        Button(
+            time_frame, text="⏰", font=("Segoe UI Emoji", 10), width=3,
+            bg='red', fg='blue', cursor="hand2",
+            command=self.open_time_picker
+        ).pack(side=LEFT, padx=3)
 
-    #Attandence status
-        staus_label=Label(left_inside_frame,text='Attandence status :',font=('times new roman', 12, 'bold'),bg='white')
-        staus_label.grid(row=3,column=0,padx=5,sticky=W)
+        
+        # Date with Date Picker Button
+        Label(left_inside_frame, text='Date:DD/MM/YYYY', font=('times new roman', 10, 'bold'), bg='white').grid(row=2, column=2, padx=5, sticky=W)
+        
+        # Create a frame to hold entry and button together for alignment
+        date_frame = Frame(left_inside_frame, bg='white')
+        date_frame.grid(row=2, column=3, padx=5, pady=3, sticky=W)
+        
+        date_entry = ttk.Entry(date_frame, width=17, font=('times new roman', 12), textvariable=self.var_atten_date)
+        date_entry.pack(side=LEFT)
+        
+        date_btn = Button(date_frame, text="📅", font=("Segoe UI Emoji", 10), width=3, bg='red', fg='blue', activebackground='green', activeforeground='yellow', cursor="hand2", command=self.open_attendance_date_calendar)
+        date_btn.pack(side=LEFT, padx=3)
+        
+        # Status
+        Label(left_inside_frame, text='Status:', font=('times new roman', 12, 'bold'), bg='white').grid(row=3, column=0, padx=5, sticky=W)
+        status_combo = ttk.Combobox(left_inside_frame, font=('times new roman', 12, 'bold'), width=13, state='readonly', textvariable=self.var_atten_status)
+        status_combo['values'] = ('Present', 'Absent')
+        status_combo.current(0)
+        status_combo.grid(row=3, column=1, padx=5, pady=5, sticky=W)
 
-        status_combo=ttk.Combobox(left_inside_frame,font=('times new roman', 12, 'bold'),width=18,state='read',textvariable=self.var_atten_status)
-        status_combo['values']=('Present','Absent')
-        status_combo.set('Status')
-        status_combo.grid(row=3,column=1,padx=5,pady=5,sticky=W)
-    # button frame
-    
-        btn_frame=Frame(left_inside_frame,bd=2,relief=RIDGE,bg='white')
-        btn_frame.place(x=0,y=250,width=635,height=35)
+        # --- Button Frame 1 (CRUD) ---
+        btn_frame = Frame(left_inside_frame, bd=2, relief=RIDGE, bg='white')
+        btn_frame.place(x=5, y=180, width=625, height=35)
 
-        import_btn=Button(btn_frame,text="Import Csv",width=17,cursor='hand2',font=('times new roman', 11, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.import_csv)
-        import_btn.grid(row=0,column=0)
+        Button(btn_frame, text="Save", command=self.add_data, width=16, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=0)
+        Button(btn_frame, text="Update", command=self.update_data, width=16, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=1)
+        Button(btn_frame, text="Delete", command=self.delete_data, width=16, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=2)
+        Button(btn_frame, text="Reset", command=self.reset_data, width=16, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=3)
 
-        export_btn=Button(btn_frame,text="Export Csv",width=17,cursor='hand2',font=('times new roman', 11, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.export_csv)
-        export_btn.grid(row=0,column=1)
+        # --- Button Frame 2 (Report/Inform) ---
+        
+        btn_frame3 = Frame(left_inside_frame, bd=2, relief=RIDGE, bg='white')
+        btn_frame3.place(x=5, y=240, width=625, height=75)
+        
+        Button(btn_frame3, text="Inform Students", command=self.inform, width=33, cursor='hand2', font=('times new roman', 11, 'bold'), bg='purple', fg='white').grid(row=0, column=0)
+        Button(btn_frame3, text="Attendance Report", command=self.plot_attendance_graph, width=33, cursor='hand2', font=('times new roman', 11, 'bold'), bg='purple', fg='white').grid(row=0, column=1)
+        Button(
+            btn_frame3,
+            text="Export Attendance",
+            command=self.export_data,
+            cursor='hand2',
+            font=('times new roman', 11, 'bold'),
+            bg='orange',
+            fg='white'
+        ).grid(
+            row=1,
+            column=0,
+            columnspan=2,   # ⭐ spans both columns
+            sticky="we",    # ⭐ full width
+            pady=5
+        )
 
-        update_btn=Button(btn_frame,text="Update",width=16,cursor='hand2',font=('times new roman', 11, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_data)
-        update_btn.grid(row=0,column=2)
+        # --- Right Frame (Table) ---
+        right_frame = LabelFrame(main_frame, bd=2, bg='white', relief=RIDGE, text='Attendance Details', font=('times new roman', 12, 'bold'))
+        right_frame.place(x=665, y=10, width=645, height=440)
 
-        reset_btn=Button(btn_frame,text="Reset",width=16,cursor='hand2',font=('times new roman', 11, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.reset_data)
-        reset_btn.grid(row=0,column=3)
+        # --- Search Frame (Identical to student.py) ---
+        search_frame = LabelFrame(right_frame, bd=2, bg='white', relief=RIDGE, text='Search System', font=('times new roman', 12, 'bold'))
+        search_frame.place(x=5, y=5, width=635, height=60)
 
-        btn_frame1=Frame(left_inside_frame,bd=2,relief=RIDGE,bg='white')
-        btn_frame1.place(x=0,y=285,width=635,height=35)
+        search_label = Label(search_frame, text='Search By :', font=('times new roman', 12, 'bold'), bg='red', fg='white')
+        search_label.grid(row=0, column=0, padx=5, sticky=W)
 
-        inform_btn=Button(btn_frame1,text="Inform Students",width=29,cursor='hand2',font=('times new roman', 14, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.inform)
-        inform_btn.grid(row=0,column=0)
+        search_combo = ttk.Combobox(search_frame, font=('times new roman', 12, 'bold'), width=12, state='read', textvariable=self.var_search_combo)
+        search_combo["values"] = ("Student_id", "Name", "Roll", "Dep", "Date", "Status")
+        search_combo.current(0)
+        search_combo.set("Select Option")
+        search_combo.grid(row=0, column=1, padx=2, sticky=W)
 
-        report_btn=Button(btn_frame1,text="Attendance Report",width=29,cursor='hand2',font=('times new roman', 14, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.plot_attendance_graph)
-        report_btn.grid(row=0,column=1)
-     # right_label frame
-        right_frame=LabelFrame(main_frame,bd=2,bg='white',relief=RIDGE,text='Attendance Details',font=('times new roman', 12, 'bold'))
-        right_frame.place(x=665,y=10,width=645,height=440)
+        # Widened Search Entry
+        search_entry = ttk.Entry(search_frame, width=25, font=('times new roman', 12, 'bold'), textvariable=self.var_search_entry)
+        search_entry.grid(row=0, column=2, padx=2, pady=3, sticky=W)
+        search_entry.bind("<KeyRelease>", self.advanced_search)
 
-        table_frame1=Frame(right_frame,bd=2,relief=RIDGE,bg='white')
-        table_frame1.place(x=0,y=5,width=635,height=410)
+        reset_btn = Button(search_frame, text="Reset", width=7, cursor='hand2', font=('times new roman', 10, 'bold'), bg='green', fg='white', activebackground="red", activeforeground='green', command=self.reset_search)
+        reset_btn.grid(row=0, column=3, padx=3)
+        
+        # Added Refresh Button
+        refresh_btn = Button(search_frame, text="Refresh", width=7, cursor='hand2', font=('times new roman', 10, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green', command=lambda: self.refresh_animation(self.auto_load_data)
+        )
+        refresh_btn.grid(row=0, column=4, padx=3)
+        
+        Button(search_frame, text="Filter", font=("times new roman", 10, "bold"), bg="purple", fg="white", cursor='hand2', activebackground="#5d57b4", activeforeground='black', width=7, command=self.open_filter_window).grid(row=0, column=5, padx=3)
 
-        scroll_x=ttk.Scrollbar(right_frame,orient=HORIZONTAL)
-        scroll_y=ttk.Scrollbar(right_frame,orient=VERTICAL)
-        self.attendence_table=ttk.Treeview(right_frame,column=('id','name','roll','department','time','date','attendance'),xscrollcommand=scroll_x.set,yscrollcommand=scroll_y.set)
-        scroll_x.pack(side=BOTTOM,fill=X)
-        scroll_y.pack(side=RIGHT,fill=Y)
+        # --- Table Frame ---
+        table_frame = Frame(right_frame, bd=2, bg='white', relief=RIDGE)
+        table_frame.place(x=5, y=75, width=635, height=340)
+
+        scroll_x = ttk.Scrollbar(table_frame, orient=HORIZONTAL)
+        scroll_y = ttk.Scrollbar(table_frame, orient=VERTICAL)
+
+        self.attendence_table = ttk.Treeview(table_frame, column=('id', 'name', 'roll', 'department', 'time', 'date', 'attendance'), xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
+        
+        scroll_x.pack(side=BOTTOM, fill=X)
+        scroll_y.pack(side=RIGHT, fill=Y)
         scroll_x.config(command=self.attendence_table.xview)
         scroll_y.config(command=self.attendence_table.yview)
 
-        self.attendence_table.heading('id',text='Attendance ID')
-        self.attendence_table.heading('name',text='StudentName')
-        self.attendence_table.heading('roll',text='Roll No')
-        self.attendence_table.heading('department',text='Department')
-        self.attendence_table.heading('time',text='Arriving Time')
-        self.attendence_table.heading('date',text='Arriving Date')
-        self.attendence_table.heading('attendance',text='Attendance Status')
-        self.attendence_table['show']='headings'
+        self.attendence_table.heading('id', text='ID')
+        self.attendence_table.heading('name', text='Name')
+        self.attendence_table.heading('roll', text='Roll')
+        self.attendence_table.heading('department', text='Dept')
+        self.attendence_table.heading('time', text='Time')
+        self.attendence_table.heading('date', text='Date')
+        self.attendence_table.heading('attendance', text='Status')
+
+        self.attendence_table['show'] = 'headings'
+        self.attendence_table.column('id', width=100)
+        self.attendence_table.column('name', width=100)
+        self.attendence_table.column('roll', width=100)
+        self.attendence_table.column('department', width=100)
+        self.attendence_table.column('time', width=100)
+        self.attendence_table.column('date', width=100)
+        self.attendence_table.column('attendance', width=100)
+
+        self.attendence_table.pack(fill=BOTH, expand=1)
+        self.attendence_table.bind('<ButtonRelease>', self.get_cursor)
+        
+        # Sorting setup
+        self.attendance_columns = {
+            'id': int, 'name': str, 'roll': int, 'department': str,
+            'time': str, 'date': 'date', 'attendance': str
+        }
+        for col in self.attendance_columns:
+            self.attendence_table.heading(col, text=col.title(), command=lambda c=col: self.attendance_sort(c, False))
+
+        # Initial Data Load
+        self.auto_load_data()
+        self.set_current_date_time()
+
+    def export_data(self):
+        rows = []
+        for item in self.attendence_table.get_children():
+            rows.append(self.attendence_table.item(item)['values'])
+
+        if not rows:
+            messagebox.showerror("No Data", "No data available to export", parent=self.root)
+            return
+
+        filetypes = [
+            ("CSV File", "*.csv"),
+            ("Excel File", "*.xlsx"),
+            ("Text File", "*.txt"),
+            ("JSON File", "*.json"),
+            ("PDF File", "*.pdf")  # Added PDF option
+        ]
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=filetypes,
+            title="Export Attendance Data",
+            parent=self.root
+        )
+
+        if not file_path:
+            return
+
+        try:
+            headers = ["Student ID", "Name", "Roll", "Department", "Time", "Date", "Status"]
+
+            # CSV Export
+            if file_path.endswith(".csv"):
+                with open(file_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(headers)
+                    writer.writerows(rows)
+
+            # Excel Export
+            elif file_path.endswith(".xlsx"):
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Attendance"
+                ws.append(headers)
+                for r in rows:
+                    ws.append(r)
+                wb.save(file_path)
+
+            # Text Export
+            elif file_path.endswith(".txt"):
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write("\t".join(headers) + "\n")
+                    for r in rows:
+                        f.write("\t".join(map(str, r)) + "\n")
+
+            # JSON Export
+            elif file_path.endswith(".json"):
+                data = [dict(zip(headers, r)) for r in rows]
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+
+            # PDF Export (Formatted properly)
+            elif file_path.endswith(".pdf"):
+                pdf = SimpleDocTemplate(
+                    file_path,
+                    pagesize=A4,
+                    rightMargin=30,
+                    leftMargin=30,
+                    topMargin=40,
+                    bottomMargin=30
+                )
+
+                elements = []
+                styles = getSampleStyleSheet()
+
+                # 🔵 Centered & Colored Title
+                title_style = styles["Title"]
+                title_style.alignment = 1  # Center
+                title_style.textColor = colors.HexColor("#1f4bd8")
+
+                elements.append(Paragraph("Attendance Report", title_style))
+
+                elements.append(Paragraph("<br/>", styles["Normal"]))  # spacing
+
+                # Table data (headers + rows)
+                table_data = [
+                    ["Student ID", "Name", "Roll", "Department", "Time", "Date", "Status"]
+                ]
+
+                for r in rows:
+                    table_data.append([str(x) for x in r])
+
+                # Create table
+                table = Table(
+                    table_data,
+                    colWidths=[60, 80, 60, 90, 80, 70, 70]
+                )
+
+                # 🎨 Table Styling
+                table.setStyle(TableStyle([
+                    # Header style
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f4bd8")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+
+                    # Body cells
+                    ("ALIGN", (0, 1), (-1, -1), "CENTER"),
+                    ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+
+                    # Grid lines 🔲
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+
+                    # Row background
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.whitesmoke),
+                ]))
+
+                elements.append(table)
+                pdf.build(elements)
+
+            messagebox.showinfo(
+                "Export Successful",
+                f"Attendance data exported successfully!\n\n"
+                f"📁 File: {file_path}\n"
+                f"📄 Format: PDF",
+                parent=self.root
+            )
+
+        except Exception as e:
+            messagebox.showerror("Export Error", str(e), parent=self.root)
 
 
-        self.attendence_table.column('id',width=100)
-        self.attendence_table.column('name',width=100)
-        self.attendence_table.column('roll',width=100)
-        self.attendence_table.column('department',width=100)
-        self.attendence_table.column('time',width=100)
-        self.attendence_table.column('date',width=100)
-        self.attendence_table.column('attendance',width=105)
+    def open_time_picker(self):
+        def set_time(selected_time):
+            self.var_atten_time.set(selected_time)
 
-        self.attendence_table.pack(fill=BOTH,expand=1)
-        self.attendence_table.bind('<ButtonRelease>',self.get_cursor)
-#############################fetch data########################
+        TimePickerDialog(
+            self.root,
+            self.var_atten_time.get(),
+            set_time
+        )
 
-    def fetch_data(self,rows):
+    def set_current_date_time(self):
+        today = datetime.date.today().strftime("%d/%m/%Y")
+        now = datetime.datetime.now().strftime("%I:%M:%S %p")
+
+        self.var_atten_date.set(today)
+        self.var_atten_time.set(now)
+
+    def refresh_animation(self, reload_callback):
+        # Disable UI briefly (optional visual effect)
+        self.root.config(cursor="watch")
+        self.root.update_idletasks()
+
+        # Clear table instantly (Chrome-like disappear)
+        if hasattr(self, 'attendence_table'):
+            self.attendence_table.delete(*self.attendence_table.get_children())
+        if hasattr(self, 'student_table'):
+            self.student_table.delete(*self.student_table.get_children())
+
+        # Small delay then reload
+        self.root.after(400, lambda: self._finish_refresh(reload_callback))
+
+    def _finish_refresh(self, reload_callback):
+        reload_callback()
+        self.root.config(cursor="")
+
+    def setup_database(self):
+        try:
+            conn = mysql.connector.connect(host='localhost', port=3307, username='root', password='1582', database='face_recognizer')
+            my_cursor = conn.cursor()
+            my_cursor.execute("""
+            CREATE TABLE IF NOT EXISTS attendance (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                Student_id VARCHAR(50),
+                Student_name VARCHAR(100),
+                Roll VARCHAR(50),
+                Dep VARCHAR(100),
+                Time VARCHAR(50),
+                Date VARCHAR(50),
+                Status VARCHAR(50)
+            )
+            """)
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            messagebox.showerror("Error", f"Database Setup Failed: {e}")
+
+    def get_db_connection(self):
+        return mysql.connector.connect(host='localhost', port=3307, username='root', password='1582', database='face_recognizer')
+
+    def open_attendance_date_calendar(self):
+        try:
+            initial_date = datetime.datetime.strptime(self.var_atten_date.get(), "%d/%m/%Y").date()
+        except:
+            initial_date = datetime.date.today()
+        def set_date(selected_date):
+            self.var_atten_date.set(selected_date.strftime("%d/%m/%Y"))
+        DatePickerDialog(self.root, initial_date, set_date)
+
+    # ================= CRUD OPERATIONS (MySQL) =================
+
+    def fetch_data(self, rows):
         self.attendence_table.delete(*self.attendence_table.get_children())
         for i in rows:
-            self.attendence_table.insert('',END,values=i)
-############Import csv#################
+            display_data = (i[1], i[2], i[3], i[4], i[5], i[6], i[7]) 
+            self.attendence_table.insert('', END, values=display_data)
 
-    def import_csv(self):
+    def auto_load_data(self):
         global mydata
         mydata.clear()
-        file_name=filedialog.askopenfilename(initialdir=os.getcwd(),title="Open Csv",filetypes=(("Csv","*.csv"),('Excel','.*.xlsx'),("All Files","*.*")),defaultextension='.csv',parent=self.root)
-        self.imported_file = file_name  # Store file path for update
-        if not file_name:
-            return
-        with open (file_name)as f1:
-            csvread=csv.reader(f1,delimiter=',')
-            for i in csvread:
-                mydata.append(i)
-            self.fetch_data(mydata)
-###########Export csv######################
-
-    def export_csv(self):
         try:
-            if len(mydata)<1:
-                messagebox.showerror("No Data",'No Data Found To Export',parent=self.root)
-                return False
-            file_name=filedialog.asksaveasfilename(initialdir=os.getcwd(),title="Save Csv",filetypes=(("Csv","*.csv"),('Excel','*.xlsx'),("All Files","*.*")),defaultextension='.csv',parent=self.root)
-            if not file_name:
-                return False  
-            with open (file_name,mode='w',newline='') as f1:
-                exp_write=csv.writer(f1,delimiter=',')
-                for i in mydata:
-                    exp_write.writerow(i)
-                messagebox.showinfo('Data Exported','Your data is succesfully exported to '+ os.path.basename(file_name) + ' successfully',parent=self.root)
+            conn = self.get_db_connection()
+            my_cursor = conn.cursor()
+            my_cursor.execute("SELECT * FROM attendance")
+            rows = my_cursor.fetchall()
+            for r in rows:
+                mydata.append(r)
+            self.fetch_data(mydata)
+            conn.close()
         except Exception as e:
-            messagebox.showerror('Error',f'Failed to export data due to {str(e)}',parent=self.root)
+            messagebox.showerror("Error", f"Could not load data: {e}")
 
-    def get_cursor(self,event=''):
-        cursor_row=self.attendence_table.focus()
-        content=self.attendence_table.item(cursor_row)
-        rows=content['values']
-        self.var_atten_id.set(rows[0])
-        self.var_atten_name.set(rows[1])
-        self.var_atten_roll.set(rows[2])
-        self.var_atten_dept.set(rows[3])
-        self.var_atten_time.set(rows[4])
-        self.var_atten_date.set(rows[5])
-        self.var_atten_status.set(rows[6])
-
-    def reset_data(self):
-        self.var_atten_id.set('')
-        self.var_atten_name.set('')
-        self.var_atten_roll.set('')
-        self.var_atten_dept.set('')
-        self.var_atten_time.set('')
-        self.var_atten_date.set('')
-        self.var_atten_status.set('Status')
-
-    def update_data(self):
-          try:
-            selected = self.attendence_table.focus()
-            if not selected:
-                messagebox.showerror("Error", "Please select a record to update.",parent=self.root)
+    def add_data(self):
+        if self.var_atten_id.get() == "" or self.var_atten_name.get() == "":
+            messagebox.showerror("Error", "All fields are required", parent=self.root)
+            return
+        
+        try:
+            conn = self.get_db_connection()
+            my_cursor = conn.cursor()
+            my_cursor.execute("SELECT * FROM attendance WHERE Student_id=%s AND Date=%s", 
+                            (self.var_atten_id.get(), self.var_atten_date.get()))
+            if my_cursor.fetchone():
+                messagebox.showerror("Error", "Attendance already marked for this student today.", parent=self.root)
+                conn.close()
                 return
-            self.attendence_table.item(selected, values=(
+
+            my_cursor.execute("INSERT INTO attendance (Student_id, Student_name, Roll, Dep, Time, Date, Status) VALUES (%s,%s,%s,%s,%s,%s,%s)", (
                 self.var_atten_id.get(),
                 self.var_atten_name.get(),
                 self.var_atten_roll.get(),
                 self.var_atten_dept.get(),
                 self.var_atten_time.get(),
                 self.var_atten_date.get(),
-                self.var_atten_status.get(),
+                self.var_atten_status.get()
             ))
-            if not hasattr(self, 'imported_file') or not self.imported_file:
-                messagebox.showerror("Error", "No imported file found to update.", parent=self.root)
+            conn.commit()
+            conn.close()
+            messagebox.showinfo("Success", "Attendance Added Successfully", parent=self.root)
+            self.auto_load_data()
+            self.set_current_date_time()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {e}", parent=self.root)
+
+    def update_data(self):
+        if self.var_atten_id.get() == "":
+            messagebox.showerror("Error", "Student ID is required", parent=self.root)
+            return
+
+        confirm = messagebox.askyesno(
+            "Confirm Update",
+            "Are you sure you want to update this attendance record?",
+            parent=self.root
+        )
+
+        if not confirm:
+            return  # user clicked No
+
+        try:
+            conn = self.get_db_connection()
+            my_cursor = conn.cursor()
+            my_cursor.execute("""
+                UPDATE attendance 
+                SET Student_name=%s, Roll=%s, Dep=%s, Time=%s, Status=%s 
+                WHERE Student_id=%s AND Date=%s
+            """, (
+                self.var_atten_name.get(),
+                self.var_atten_roll.get(),
+                self.var_atten_dept.get(),
+                self.var_atten_time.get(),
+                self.var_atten_status.get(),
+                self.var_atten_id.get(),
+                self.var_atten_date.get()
+            ))
+            conn.commit()
+            conn.close()
+
+            messagebox.showinfo("Success", "Attendance Updated Successfully", parent=self.root)
+            self.auto_load_data()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {e}", parent=self.root)
+
+    def delete_data(self):
+        if self.var_atten_id.get() == "":
+            messagebox.showerror("Error", "Student ID and Date required to delete", parent=self.root)
+            return
+        
+        try:
+            delete = messagebox.askyesno("Delete", "Do you want to delete this record?", parent=self.root)
+            if delete:
+                conn = self.get_db_connection()
+                my_cursor = conn.cursor()
+                my_cursor.execute("DELETE FROM attendance WHERE Student_id=%s AND Date=%s", 
+                                (self.var_atten_id.get(), self.var_atten_date.get()))
+                conn.commit()
+                conn.close()
+                messagebox.showinfo("Success", "Deleted Successfully", parent=self.root)
+                self.auto_load_data()
+                self.reset_data()
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {e}", parent=self.root)
+
+    def reset_data(self):
+        self.var_atten_id.set("")
+        self.var_atten_name.set("")
+        self.var_atten_roll.set("")
+        self.var_atten_dept.set("")
+        self.var_atten_time.set("")
+        self.var_atten_date.set("")
+        self.var_atten_status.set("Status")
+        self.set_current_date_time()
+
+    def get_cursor(self, event=None):
+        cursor_row = self.attendence_table.focus()
+        content = self.attendence_table.item(cursor_row)
+        rows = content['values']
+        if rows:
+            self.var_atten_id.set(rows[0])
+            self.var_atten_name.set(rows[1])
+            self.var_atten_roll.set(rows[2])
+            self.var_atten_dept.set(rows[3])
+            self.var_atten_time.set(rows[4])
+            self.var_atten_date.set(rows[5])
+            self.var_atten_status.set(rows[6])
+
+    # ================= FILTERS, SORT & SEARCH =================
+
+    def reset_search(self):
+        self.var_search_entry.set("")
+        self.var_search_combo.set("Select Option")
+        self.active_filters = {
+            "Status": [],
+            "Department": [],
+            "DateRange": []
+        }
+        self.auto_load_data()
+
+    def advanced_search(self, event=None):
+        search_txt = self.var_search_entry.get().lower()
+        search_by = self.var_search_combo.get()
+        
+        col_map = {
+            "Student_id": 1,
+            "Name": 2,
+            "Roll": 3,
+            "Dep": 4,
+            "Date": 6,
+            "Status": 7
+        }
+        
+        idx = col_map.get(search_by, 1)
+        
+        filtered = []
+        for row in mydata:
+            if search_txt in str(row[idx]).lower():
+                filtered.append(row)
+        
+        self.fetch_data(filtered)
+
+    def attendance_sort(self, col, reverse):
+        col_type = self.attendance_columns[col]
+        data = [(self.attendence_table.set(k, col), k) for k in self.attendence_table.get_children('')]
+        
+        def sort_key(item):
+            value = item[0].strip()
+            if col_type == int: return int(value) if value.isdigit() else 0
+            elif col_type == 'date': 
+                try:
+                    return datetime.datetime.strptime(value, "%d/%m/%Y")
+                except:
+                    return datetime.datetime.min
+            else: return value.lower()
+
+        data.sort(key=sort_key, reverse=reverse)
+        for index, (_, k) in enumerate(data): self.attendence_table.move(k, '', index)
+        self.attendence_table.heading(col, command=lambda: self.attendance_sort(col, not reverse))
+
+    def open_filter_window(self):
+        win = Toplevel(self.root)
+        win.title("Advanced Filters")
+        win.geometry("380x480")
+        win.resizable(False, False)
+        win.transient(self.root)
+        win.grab_set()
+
+        try:
+            win.iconbitmap('college_images\\bg1.ico')
+        except:
+            pass
+        
+        # ================= DEPARTMENT FILTER =================
+        Label(win, text="Department", font=("times new roman", 11, "bold")).pack(anchor=W, padx=10, pady=(10, 5))
+        
+        dept_vars = {}
+        for d in ("Computer", "IT", "Civil", "Mechenical"):
+            v = BooleanVar(value=d in self.active_filters["Department"])
+            dept_vars[d] = v
+            Checkbutton(win, text=d, variable=v).pack(anchor=W, padx=25)
+
+        # ================= STATUS FILTER =================
+        Label(win, text="Attendance Status", font=("times new roman", 11, "bold")).pack(anchor=W, padx=10, pady=(10, 5))
+        
+        status_vars = {}
+        for s in ("Present", "Absent"):
+            v = BooleanVar(value=s in self.active_filters["Status"])
+            status_vars[s] = v
+            Checkbutton(win, text=s, variable=v).pack(anchor=W, padx=25)
+            
+        # ================= DATE FILTER =================
+        Label(win, text="Date Range", font=("times new roman", 11, "bold")).pack(anchor=W, padx=10, pady=(10, 5))
+        
+        f_frame = Frame(win)
+        f_frame.pack(fill=X, padx=25)
+        Label(f_frame, text="From:", width=5).pack(side=LEFT)
+        ttk.Entry(f_frame, textvariable=self.filter_from_date, width=15).pack(side=LEFT)
+        Button(f_frame, text="📅", font=("Segoe UI Emoji", 9), cursor="hand2", bg="#3498db", fg="white", command=lambda: self.pick_date(self.filter_from_date)).pack(side=LEFT, padx=5)
+        
+        t_frame = Frame(win)
+        t_frame.pack(fill=X, padx=25, pady=5)
+        Label(t_frame, text="To:", width=5).pack(side=LEFT)
+        ttk.Entry(t_frame, textvariable=self.filter_to_date, width=15).pack(side=LEFT)
+        Button(t_frame, text="📅", font=("Segoe UI Emoji", 9), cursor="hand2", bg="#3498db", fg="white", command=lambda: self.pick_date(self.filter_to_date)).pack(side=LEFT, padx=5)
+
+        # ================= BUTTONS =================
+        btn_frame = Frame(win)
+        btn_frame.pack(pady=20)
+        
+        Button(btn_frame, text="Apply Filters", bg="green", fg="white", width=15, 
+               font=('times new roman', 10, 'bold'), cursor='hand2', 
+               command=lambda: self.apply_filter(win, dept_vars, status_vars)).pack(side=LEFT, padx=5)
+               
+        Button(btn_frame, text="Clear Filters", bg="red", fg="white", width=15, 
+               font=('times new roman', 10, 'bold'), cursor='hand2', 
+               command=lambda: self.clear_filter(win)).pack(side=LEFT, padx=5)
+
+    def pick_date(self, var):
+        try:
+            initial = datetime.datetime.strptime(var.get(), "%d/%m/%Y").date()
+        except:
+            initial = datetime.date.today()
+        def set_d(d): var.set(d.strftime('%d/%m/%Y'))
+        DatePickerDialog(self.root, initial, set_d)
+
+    def apply_filter(self, win, dept_vars, status_vars):
+        # 1. Update Active Filters
+        self.active_filters["Department"] = [k for k, v in dept_vars.items() if v.get()]
+        self.active_filters["Status"] = [k for k, v in status_vars.items() if v.get()]
+        
+        # 2. Start with full data (Reload global mydata ensures we filter from source)
+        # Note: If database is large, fetching all and filtering in Python is slow.
+        # But since mydata is already loaded, we filter memory for speed.
+        filtered = mydata.copy()
+        
+        # 3. Filter by Department
+        if self.active_filters["Department"]:
+            filtered = [r for r in filtered if r[4] in self.active_filters["Department"]] # Index 4 is Dep
+            
+        # 4. Filter by Status
+        if self.active_filters["Status"]:
+            filtered = [r for r in filtered if r[7] in self.active_filters["Status"]] # Index 7 is Status
+            
+        # 5. Filter by Date Range
+        f_date = self.filter_from_date.get()
+        t_date = self.filter_to_date.get()
+        
+        if f_date and t_date:
+            try:
+                fd = datetime.datetime.strptime(f_date, "%d/%m/%Y")
+                td = datetime.datetime.strptime(t_date, "%d/%m/%Y")
+                
+                if td < fd:
+                    messagebox.showerror("Error", "'To Date' must be ahead of or equal to 'From Date'", parent=win)
+                    return
+                
+                date_filtered = []
+                for r in filtered:
+                    try:
+                        rd = datetime.datetime.strptime(r[6], "%d/%m/%Y") # Index 6 is Date
+                        if fd <= rd <= td:
+                            date_filtered.append(r)
+                    except: pass # Skip invalid dates
+                filtered = date_filtered
+            except Exception as e:
+                messagebox.showerror("Date Error", "Invalid Date Format", parent=win)
                 return
-            with open(self.imported_file, mode='w', newline='') as f:
-                writer = csv.writer(f)
-                for row_id in self.attendence_table.get_children():
-                    row = self.attendence_table.item(row_id)['values']
-                    writer.writerow(row)
-            messagebox.showinfo("Success", f"CSV file updated: {os.path.basename(self.imported_file)}", parent=self.root)
-          except Exception as e:
-                messagebox.showerror("Error", f"Failed to update CSV file: due to {str(e)}", parent=self.root)
+
+        self.fetch_data(filtered)
+        win.destroy()
+
+    def clear_filter(self, win):
+        self.active_filters = {
+            "Status": [],
+            "Department": [],
+            "DateRange": []
+        }
+        self.filter_from_date.set("")
+        self.filter_to_date.set("")
+        self.auto_load_data()
+        win.destroy()
+
+    # ================= REPORT / OTHERS =================
 
     def plot_attendance_graph(self):
-        # Check if there's any data to plot
-        if len(mydata) < 1:
-            messagebox.showerror("Error", "No data to plot", parent=self.root)
+        report_data = [list(r[1:]) for r in mydata]
+        if not report_data:
+            messagebox.showerror("No Data", "No data available for report")
             return
+        DetailedAttendanceReport(self.root, report_data)
 
-        # Dictionary to count number of 'Present' days per student
-        attendance_count = defaultdict(int)
+    def inform(self):
+        self.new_window = Toplevel(self.root)
+        self.app = Inform(self.new_window)
 
-        # Loop through each row in imported CSV data
-        for row in mydata:
-            # Ensure the row has at least 7 columns and status is 'Present'
-            if len(row) >= 7 and row[6].strip().lower() == 'present':
-                name = row[1]  # Use student name (column 2); you could use roll number (row[2]) instead
-                attendance_count[name] += 1  # Increment count for this student
-
-        # If no 'Present' status found, show info message and exit
-        if not attendance_count:
-            messagebox.showinfo("Info", "No 'Present' records found to plot.", parent=self.root)
-            return
-
-        # Get student names and their respective present counts
-        names = list(attendance_count.keys())
-        counts = list(attendance_count.values())
-        # Generate a colormap with a different color for each bar
-        colors = plt.colormaps['tab10'].resampled(len(names))  # You can use 'tab20', 'Set3', etc.
-        
-
-
-        
-       # Set figure windows position
-        maneger=plt.get_current_fig_manager()
-       #configure arriving position
-        maneger.window.wm_geometry('+200+100')
-        
-        # Create the bar graph
-        bars = plt.bar(names, counts, color=[colors(i) for i in range(len(names))])
-
-        # Label the x-axis
-        plt.xlabel('Student Name')
-
-        # Label the y-axis
-        plt.ylabel('Number of Days Present')
-
-        # Set the title of the graph
-        plt.title('Student Attendance Report')
-
-        # Rotate x-axis labels to avoid overlap
-        plt.xticks(rotation=45, ha='right')
-
-        # Adjust layout to prevent clipping
-        plt.tight_layout()
-
-        # Show the plot window
-        plt.show()
+    def update_time(self):
+        if self.root.winfo_exists():
+            current_time = strftime('%I:%M:%S %p')
+            self.time_lbl.config(text=current_time)
+            self.time_lbl.after(1000, self.update_time)
 
     def back(self):
         self.root.destroy()
 
-    def update_time(self):
-        current_time = strftime('%I:%M:%S %p')
-        self.time_lbl.config(text=current_time)
-        self.time_lbl.after(1000, self.update_time)  # call again after 1 second
-
-    def inform(self):
-         self.new_window=Toplevel(self.root)
-         self.app=Inform(self.new_window)
-        
-
-        
-
-
-       
 if __name__ == '__main__':
-    root=Tk()
-    obj=attendance(root)
-    root.mainloop() 
+    root = Tk()
+    obj = attendance(root)
+    root.mainloop()

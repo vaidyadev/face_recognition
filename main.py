@@ -1,6 +1,8 @@
+import threading
 from tkinter import *
 from tkinter import ttk
 import tkinter.messagebox
+import webbrowser
 from PIL import Image,ImageTk
 from login import login_window
 from student import students
@@ -14,6 +16,7 @@ from datetime import datetime
 from chatbot2 import ChatBot
 import pyttsx3
 from devloper import developer
+from chatbot2 import ChatBot
 
 
 
@@ -85,6 +88,8 @@ class face_recog:
                             font=('times new roman', 10, 'bold'), bg='red', fg='white',
                             activebackground="green", command=self.logout)
         self.back_btn.pack(pady=10)
+        
+
 
 
 
@@ -170,6 +175,11 @@ class face_recog:
         b1_11=Button(bg_img,text="Exit",cursor='hand2',font=('times new roman', 15, 'bold'), bg='darkblue', fg='white'
                     ,activebackground="red",activeforeground='green',command=self.iexit)
         b1_11.place(x=1000,y=480,width=200,height=40)
+        # Keyboard shortcut for logout (Ctrl + L)
+        self.root.bind("<Control-l>", self.logout_shortcut)
+        self.root.bind("<Control-L>", self.logout_shortcut)
+        
+
 
 
        
@@ -177,6 +187,9 @@ class face_recog:
 
         # Start the slider after initializing everything
         self.slider()
+
+    def logout_shortcut(self, event=None):
+        self.logout()
 
     def slider(self):
         if self.count == len(self.s):
@@ -191,21 +204,32 @@ class face_recog:
     def studuent_detail(self):
             self.new_window=Toplevel(self.root)
             self.app=students(self.new_window)
+    
     def train_data(self):
             self.new_window=Toplevel(self.root)
             self.app=train(self.new_window)
+ 
     def face_data(self):
             self.new_window=Toplevel(self.root)
             self.app=face_recognition(self.new_window)
+ 
     def attendance_details(self):
             self.new_window=Toplevel(self.root)
             self.app=attendance(self.new_window)
+ 
+    
+    
+
     def chatbot(self):
-            self.new_window=Toplevel(self.root)
-            self.app=ChatBot(self.new_window)
+         self.new_window=Toplevel(self.root)
+         self.app=ChatBot(self.new_window)
+        
+
+ 
     def devloper(self):
           self.new_window=Toplevel(self.root)
           self.app=developer(self.new_window)
+ 
     def logout(self):
         # Ask for confirmation
         confirm = tkinter.messagebox.askyesno("Logout", "Are you sure you want to logout?", parent=self.root)
@@ -243,14 +267,13 @@ class face_recog:
             fade_in()
             new_root.mainloop()
 
-
-
     def iexit(self):
             self.iexit=tkinter.messagebox.askyesno('Face Recognition','Are you sure you want to exit',parent=self.root)
             if self.iexit>0:
                   self.root.destroy()
             else:
                   return
+ 
     def open_images(self):
          os.startfile('data')
 

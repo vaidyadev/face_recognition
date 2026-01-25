@@ -1,0 +1,5 @@
+{
+    "language": "hi",
+    "model": "tngtech/deepseek-r1t2-chimera:free",
+    "theme_mode": "Light"
+}

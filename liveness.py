@@ -112,7 +112,7 @@ class LivenessDetector:
         variance = laplacian.var()
         
         # Threshold for texture variation (adjust based on testing)
-        return variance > 120  # Higher threshold for clearer distinction
+        return variance >50  # Higher threshold for clearer distinction
     
     def detect_reflections(self, face_region):
         """Detect light reflections that would be present on a real face but not on a photo"""
@@ -133,7 +133,7 @@ class LivenessDetector:
         reflection_percentage = reflection_pixels / total_pixels * 100
         
         # Real faces typically have some natural light reflections
-        return 0.1 < reflection_percentage <18  # Adjust thresholds as needed
+        return 0.1 < reflection_percentage <30  # Adjust thresholds as needed
     
     def issue_challenge(self):
         """Issue a random liveness challenge to the user"""

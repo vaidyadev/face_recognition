@@ -4,6 +4,7 @@ from PIL import Image,ImageTk
 from tkinter import messagebox
 from send_email import emailsender
 from send_whatsapp import msgsender
+from send_telegram import TelegramBotSender
 class Inform:
    def __init__(self,root):
         self.root = root
@@ -43,24 +44,41 @@ class Inform:
         back_btn.place(x=1160,y=8,height=25)
 
         img4 = Image.open("college_images\\mail.jpg")
-        img4 = img4.resize((660,410), Image.Resampling.LANCZOS)
+        img4 = img4.resize((400,410), Image.Resampling.LANCZOS)
         self.photoimg4 = ImageTk.PhotoImage(img4)
 
         b1=Button(bg_img,image=self.photoimg4,cursor='hand2',command=self.email)
-        b1.place(x=10,y=50,width=660,height=410)
+        b1.place(x=10,y=50,width=400,height=410)
 
         b1_1=Button(bg_img,text="Inform Via Mail",cursor='hand2',font=('times new roman', 20, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.email)
-        b1_1.place(x=10,y=460,width=660,height=60)
+        b1_1.place(x=10,y=460,width=400,height=60)
 
         img5 = Image.open("college_images\\what.jpg")
-        img5 = img5.resize((670,410), Image.Resampling.LANCZOS)
+        img5 = img5.resize((400,410), Image.Resampling.LANCZOS)
         self.photoimg5 = ImageTk.PhotoImage(img5)
 
         b2=Button(bg_img,image=self.photoimg5,cursor='hand2',command=self.whatsapp)
-        b2.place(x=680,y=50,width=670,height=410)
+        b2.place(x=470,y=50,width=400,height=410)
 
         b1_2=Button(bg_img,text="Inform Via Whatsapp",cursor='hand2',font=('times new roman', 20, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.whatsapp)
-        b1_2.place(x=680,y=460,width=670,height=60)
+        b1_2.place(x=470,y=460,width=400,height=60)
+        img6 = Image.open("college_images\\tel.jpg")
+        img6 = img6.resize((400, 410), Image.Resampling.LANCZOS)
+        self.photoimg6 = ImageTk.PhotoImage(img6)
+
+        b3 = Button(bg_img, image=self.photoimg6, cursor='hand2', command=self.telegram)
+        b3.place(x=930, y=50, width=400, height=410)
+
+        b3_1 = Button(bg_img, text="Inform Via Telegram",
+                    cursor='hand2',
+                    font=('times new roman', 20, 'bold'),
+                    bg='darkblue', fg='white',
+                    activebackground="red",
+                    activeforeground='green',
+                    command=self.telegram)
+        b3_1.place(x=930, y=460, width=400, height=60)
+
+
 
 
    def back(self):
@@ -76,6 +94,10 @@ class Inform:
    def whatsapp(self):
        self.new_window=Toplevel(self.root)
        self.app=msgsender(self.new_window)
+   def telegram(self):
+    self.new_window = Toplevel(self.root)
+    self.app = TelegramSender(self.new_window)
+
        
 
 

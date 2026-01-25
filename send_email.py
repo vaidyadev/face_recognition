@@ -20,7 +20,7 @@ except ImportError:
 import mysql.connector
 from tkcalendar import DateEntry
 from datetime import datetime, timedelta
-from chatbot2 import ToolTip
+from tooltip import ToolTip
 
 class emailsender:
     check = False
@@ -51,16 +51,23 @@ class emailsender:
         self.photoimg = ImageTk.PhotoImage(img)
         title_frame = Frame(self.root, bg='white')
         title_frame.grid(row=0, column=0, pady=5)
-        title_label = Label(title_frame, text=' Email Sender', image=self.photoimg, compound=LEFT,
+        help_button = Button(title_frame, image=self.photoimg, bg='white', cursor='hand2',
+                                activebackground='white', borderwidth=0, command=self.show_shortcuts)
+        help_button.grid(row=0, column=0, padx=15)
+        ToolTip(help_button, "Help For Shortcuts <Control-h> ")
+
+        title_label = Label(title_frame, text=' Email Sender',
                              font=('goudy old style', 28, 'bold'), bg='white', fg='dodger blue2')
-        title_label.grid(row=0, column=0)
+        title_label.grid(row=0, column=1)
+        
+
 
         img1 = Image.open("assets\\setting.png")
         self.photoimg1 = ImageTk.PhotoImage(img1)
         setting_button = Button(title_frame, image=self.photoimg1, bg='white', cursor='hand2',
                                 activebackground='white', borderwidth=0, command=self.setting)
-        setting_button.grid(row=0, column=1, padx=15)
-        ToolTip(setting_button, "Email Credentials Settings")
+        setting_button.grid(row=0, column=2, padx=15)
+        ToolTip(setting_button, "Email Credentials Settings <Control-c> ")
 
         # ------------------ To Email Section ------------------ #
         to_label = LabelFrame(root, text='To (Email Address)',
@@ -101,6 +108,7 @@ class emailsender:
                               font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='dodger blue2',
                               activebackground='dodger blue2', command=self.speak)
         speak_button.grid(row=0, column=0)
+        ToolTip(speak_button, "Speak <Control-m>")
 
         img3 = Image.open("assets\\attechment.png")
         img3 = img3.resize((48, 48), Image.Resampling.LANCZOS)
@@ -109,6 +117,7 @@ class emailsender:
                                font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='dodger blue2',
                                activebackground='dodger blue2', command=self.attechment)
         attech_button.grid(row=0, column=1)
+        ToolTip(attech_button, "Attechments for Email <Control-a>")
 
         self.image_frame = Frame(compose_label)
         self.image_frame.grid(row=1, column=2, rowspan=2, padx=10, sticky='n')
@@ -131,14 +140,14 @@ class emailsender:
         send_button = Button(root, image=self.photoimg4, bg='dodger blue2', cursor='hand2',
                              activebackground='dodger blue2', borderwidth=0, command=self.send_mail)
         send_button.place(x=290, y=540)
-        ToolTip(send_button, "Send Email")
+        ToolTip(send_button, "Send Email <Control-Return>")
 
         img8 = Image.open("assets\\scheduled.png")
         self.photoimg8 = ImageTk.PhotoImage(img8)
         schedule_button = Button(self.root, image=self.photoimg8, bg='dodger blue2', cursor='hand2',
                                  activebackground='dodger blue2', borderwidth=0, command=self.open_schedule_window)
         schedule_button.place(x=390, y=540)
-        ToolTip(schedule_button, "Schedule E-mail Sending")
+        ToolTip(schedule_button, "Schedule E-mail Sending <Control-s>")
 
         img5 = Image.open("assets\\Clear.png")
         self.photoimg5 = ImageTk.PhotoImage(img5)
@@ -146,17 +155,24 @@ class emailsender:
         clear_button = Button(root, image=self.photoimg5, bg='dodger blue2', cursor='hand2',
                               activebackground='dodger blue2', borderwidth=0, command=self.clear)
         clear_button.place(x=490, y=540)
-        ToolTip(clear_button, "Clear All Fields")
+        ToolTip(clear_button, "Clear All Fields <Control-l>")
 
         img6 = Image.open("assets\\exit.png")
         self.photoimg6 = ImageTk.PhotoImage(img6)
         exit_button = Button(root, image=self.photoimg6, bg='dodger blue2', cursor='hand2',
                              activebackground='dodger blue2', borderwidth=0, command=self.iexit)
         exit_button.place(x=590, y=540)
-        ToolTip(exit_button, "Exit Application")
+        ToolTip(exit_button, "Exit Application <Control-q>")
+        messagebox.showwarning("Email Delivery Info",
+                                "Our email may initially appear in receiver's spam or junk folder.\n\n"
+                                "To ensure they receive future emails in their inbox, please tell them to mark the email as 'Not Spam' or move it their inbox.\n\n"
+                                "Thank you for your cooperation.", parent=self.root)
+        
 
         self.connect_db()
         self.fetch_students()
+        self.bind_shortcuts()
+        # self.show_shortcuts()
 
     def connect_db(self):
         try:
@@ -204,8 +220,7 @@ class emailsender:
         self.email_var.set("")
         self.scheduled_time = None
         self.scheduled_email_data = None
-        messagebox.showinfo("Information", "All fields cleared.", parent=self.root)
-
+        
     def speak(self):
         if not pygame_mixer_available:
             messagebox.showerror('Error', 'Pygame mixer is not available. Please install pygame to use speak functionality.', parent=self.root)
@@ -233,6 +248,27 @@ class emailsender:
             except Exception as e:
                 messagebox.showerror('Speech Recognition Error', f'Sorry your speech is not recognised due to {str(e)}',
                                      parent=self.root)
+
+    def bind_shortcuts(self):
+        self.root.bind("<Control-Return>", lambda e: self.send_mail())
+
+        self.root.bind("<Control-s>", lambda e: self.open_schedule_window())
+        self.root.bind("<Control-S>", lambda e: self.open_schedule_window())
+
+        self.root.bind("<Control-l>", lambda e: self.clear())
+        self.root.bind("<Control-L>", lambda e: self.clear())
+
+        self.root.bind("<Control-q>", lambda e: self.iexit())
+        self.root.bind("<Control-Q>", lambda e: self.iexit())
+
+        self.root.bind("<Control-a>", lambda e: self.attechment())
+        self.root.bind("<Control-A>", lambda e: self.attechment())
+        self.root.bind("<Control-m>", lambda e: self.speak())
+        self.root.bind("<Control-M>", lambda e: self.speak())
+        self.root.bind("<Control-c>", lambda e: self.setting())
+        self.root.bind("<Control-C>", lambda e: self.setting())
+        self.root.bind("<Control-h>", lambda e: self.show_shortcuts())
+        self.root.bind("<Control-H>", lambda e: self.show_shortcuts())
 
     def setting(self):
         self.password_visible = False
@@ -396,11 +432,7 @@ class emailsender:
     def sending_email(self, address, subject, msg):
         from email.message import EmailMessage
         try:
-            messagebox.showwarning("Email Delivery Info",
-                                "Our email may initially appear in receiver's spam or junk folder.\n\n"
-                                "To ensure they receive future emails in their inbox, please tell them to mark the email as 'Not Spam' or move it their inbox.\n\n"
-                                "Thank you for your cooperation.", parent=self.root)
-
+            
             with open('credentials.txt') as f1:
                 cr = f1.readline().strip().split(',')
             sender_email = cr[0]
@@ -435,6 +467,7 @@ class emailsender:
             s.quit()
 
             messagebox.showinfo("Information", 'Your Email has been sent successfully', parent=self.root)
+            self.clear()
 
         except smtplib.SMTPAuthenticationError:
             messagebox.showerror("Error", "Failed to login to SMTP server. Check your email and password in settings.", parent=self.root)
@@ -444,40 +477,40 @@ class emailsender:
             messagebox.showerror("Error", f'Your mail was not sent due to {str(e)}', parent=self.root)
 
     def open_schedule_window(self):
-        schedule_window = Toplevel(self.root)
-        schedule_window.title("Schedule Email")
-        schedule_window.geometry("400x320+200+100")
-        schedule_window.config(bg='dodger blue2')
-        schedule_window.resizable(False, False)
+        self.schedule_window = Toplevel(self.root)
+        self.schedule_window.title("Schedule Email")
+        self.schedule_window.geometry("400x320+200+100")
+        self.schedule_window.config(bg='dodger blue2')
+        self.schedule_window.resizable(False, False)
 
         try:
-            schedule_window.wm_iconbitmap('assets\\email.ico')
+            self.schedule_window.wm_iconbitmap('assets\\email.ico')
         except Exception:
             pass
 
-        title_label = Label(schedule_window, text='Schedule Email',
+        title_label = Label(self.schedule_window, text='Schedule Email',
                             font=('goudy old style', 20, 'bold'),
                             fg='white', bg='dodger blue2')
         title_label.pack(pady=15)
 
-        schedule_label = Label(schedule_window, text="Select Date:",
+        schedule_label = Label(self.schedule_window, text="Select Date:",
                                font=('times new roman', 14, 'bold'),
                                bg='dodger blue2', fg='white')
         schedule_label.pack(pady=5)
 
-        self.schedule_date = DateEntry(schedule_window, width=15,
+        self.schedule_date = DateEntry(self.schedule_window, width=15,
                                        font=('times new roman', 12),
                                        date_pattern='yyyy-mm-dd',
                                        background='dodger blue4', foreground='white',
                                        borderwidth=2, relief="groove")
         self.schedule_date.pack(pady=5)
 
-        time_label = Label(schedule_window, text="Select Time (HH:MM) in ISO format(24 hour format):",
+        time_label = Label(self.schedule_window, text="Select Time (HH:MM) in ISO format(24 hour format):",
                            font=('times new roman', 12, 'bold'),
                            bg='dodger blue2', fg='white')
         time_label.pack(pady=5)
 
-        time_frame = Frame(schedule_window, bg='dodger blue2')
+        time_frame = Frame(self.schedule_window, bg='dodger blue2')
         time_frame.pack(pady=5)
 
         self.hour_spinbox = Spinbox(time_frame, from_=0, to=23, width=5,
@@ -502,7 +535,7 @@ class emailsender:
         self.minute_spinbox.insert(0, f"{datetime.now().minute:02}")
 
         ToolTip(self.minute_spinbox, "Enter minutes (00-59)")
-        schedule_button = Button(schedule_window, text="Schedule Email",
+        schedule_button = Button(self.schedule_window, text="Schedule Email",
                                  font=('times new roman', 14, 'bold'),
                                  bg='gold2', fg='black', cursor='hand2',
                                  activebackground='dodger blue4', activeforeground='white',
@@ -529,9 +562,19 @@ class emailsender:
 
         try:
             scheduled_datetime = datetime.strptime(f"{schedule_date_str} {schedule_hour}:{schedule_minute}", "%Y-%m-%d %H:%M")
-            if scheduled_datetime < datetime.now():
-                messagebox.showerror("Error", "Scheduled time cannot be in the past.")
+            now = datetime.now()
+
+            # Require scheduled time to be at least 1 minute ahead
+            min_allowed_time = now + timedelta(minutes=1)
+
+            if scheduled_datetime <= min_allowed_time:
+                messagebox.showerror(
+                    "Invalid Time",
+                    "Scheduled time must be at least 1 minute ahead of the current time.",
+                    parent=self.schedule_window
+                )
                 return
+
 
             scheduled_email_data = {
                 "time": scheduled_datetime.strftime("%Y-%m-%d %H:%M:%S"),
@@ -567,6 +610,21 @@ class emailsender:
     def _start_schedule_monitor(self):
         monitor_thread = threading.Thread(target=self._monitor_scheduled_emails, daemon=True)
         monitor_thread.start()
+
+    def show_shortcuts(self):
+        messagebox.showinfo(
+            "Email Sender Shortcuts",
+            "Keyboard Shortcuts:\n\n"
+            "Ctrl + Enter  → Send Email\n"
+            "Ctrl + S      → Schedule Email\n"
+            "Ctrl + A      → Add Attachments\n"
+            "Ctrl + M      → Speak (Voice Input)\n"
+            "Ctrl + L      → Clear All Fields\n"
+            "Ctrl + C      → Open Setting Dialog\n"
+            "Ctrl + H      → HELP\n"
+            "Ctrl + Q      → Exit Application\n",
+            parent=self.root
+        )
 
     def _monitor_scheduled_emails(self):
         from email.message import EmailMessage

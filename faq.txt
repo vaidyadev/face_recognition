@@ -1,0 +1,21 @@
+HelpBot FAQ
+
+Explain everything clearly and briefly.
+
+Q: What is HelpBot?
+A: HelpBot is a desktop AI assistant created by Dev to help users with chat, voice, and system tasks.
+
+Q: Who created HelpBot?
+A: HelpBot was developed by Dev.
+
+Q: Does HelpBot support voice input?
+A: Yes, HelpBot supports voice input and text-to-speech.
+
+Q: How do I enable dark mode?
+A: Press Ctrl + D to toggle dark mode.
+
+Q: Where is chat history stored?
+A: Chat history is stored locally in a JSON file.
+
+Q: Can I export chat history?
+A: Yes, chat history can be exported as PDF, TXT, or JSON.
