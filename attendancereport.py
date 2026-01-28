@@ -30,7 +30,7 @@ HOLIDAY_CACHE = {}  # year -> set(dates)
 
 ai_client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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",
+    api_key="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",
 )
 
 
@@ -1121,7 +1121,7 @@ class DetailedAttendanceReport:
 
         try:
             completion = ai_client.chat.completions.create(
-                model="xiaomi/mimo-v2-flash:free",
+                model="tngtech/deepseek-r1t2-chimera:free",
                 messages=[
                     {
                         "role": "system",
@@ -1624,7 +1624,7 @@ class DetailedAttendanceReport:
 
         try:
             completion = ai_client.chat.completions.create(
-                model="xiaomi/mimo-v2-flash:free",
+                model="tngtech/deepseek-r1t2-chimera:free",
                 messages=[
                     {
                         "role": "system",

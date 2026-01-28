@@ -9,6 +9,7 @@ class ChatBotUI:
     def __init__(self, root, callbacks):
         self.root = root
         self.callbacks = callbacks
+        self.is_dark = False # Track theme state
         self.root.title('HelpBot')
         self.root.geometry('1360x680+0+0')
         self.root.resizable(True, False)
@@ -65,6 +66,13 @@ class ChatBotUI:
         self.hamburger_btn.place(x=5, y=5)
 
         self.help_icon = ImageTk.PhotoImage(Image.open("assets/chat.jpg").resize((100, 60)))
+        # Pre-load Dark Theme Icon
+        try:
+            self.help_icon_dark = ImageTk.PhotoImage(Image.open("assets/chat_night.png").resize((100, 60)))
+        except Exception:
+            print("Warning: assets/chat_night.png not found, falling back to chat.jpg")
+            self.help_icon_dark = self.help_icon
+            
         self.help_btn = Button(self.title_label, image=self.help_icon,
                                 command=self.callbacks['show_help'], bd=0, bg='white',
                             activebackground='white', cursor='hand2')
@@ -87,13 +95,33 @@ class ChatBotUI:
         self.time_lbl.place(x=500, y=15, width=200, height=45)
 
         # === Loading Spinner ===
-        self.spinner_frames = []
+        # === Loading Spinner (Composite Strategy) ===
+        self.spinner_frames = []      # Current active frames
+        self.spinner_frames_light = []
+        self.spinner_frames_dark = []
+        
         try:
             spinner_gif = Image.open("assets/spinner.gif")
+            
             for frame in range(spinner_gif.n_frames):
                 spinner_gif.seek(frame)
-                frame_image = ImageTk.PhotoImage(spinner_gif.copy().resize((24, 24)))
-                self.spinner_frames.append(frame_image)
+                
+                # Base frame in RGBA
+                base_frame = spinner_gif.copy().convert("RGBA").resize((24, 24))
+                
+                # 1. Create Light version (Composite on White)
+                light_bg = Image.new("RGBA", base_frame.size, "white")
+                light_bg.alpha_composite(base_frame)
+                self.spinner_frames_light.append(ImageTk.PhotoImage(light_bg.convert("RGB")))
+                
+                # 2. Create Dark version (Composite on #1e1e1e)
+                dark_bg = Image.new("RGBA", base_frame.size, "#1e1e1e")
+                dark_bg.alpha_composite(base_frame)
+                self.spinner_frames_dark.append(ImageTk.PhotoImage(dark_bg.convert("RGB")))
+                
+            # Initialize with default
+            self.spinner_frames = self.spinner_frames_light
+            
         except Exception as e:
             print(f"Spinner load error: {e}")
             self.spinner_frames = []
@@ -120,9 +148,9 @@ class ChatBotUI:
         self.text.bind("<Button-3>", self.show_context_menu)
 
         # === button frame (Modern Input Area) ===
-        btn_frame = ttk.Frame(self.root)
-        btn_frame.grid(row=2, column=0, sticky='ew', padx=10, pady=10)
-        btn_frame.columnconfigure(1, weight=1)
+        self.btn_frame = ttk.Frame(self.root)
+        self.btn_frame.grid(row=2, column=0, sticky='ew', padx=10, pady=10)
+        self.btn_frame.columnconfigure(1, weight=1)
 
         if True: # Creating scope for helper
             def create_emoji_btn(parent, text, tooltip_text, command, bg_color, fg_color='white'):
@@ -137,24 +165,35 @@ class ChatBotUI:
                 return btn
 
         # 0. Attachment Text Area (Top of btn_frame)
-        self.attachment_text = Text(btn_frame, height=4, width=40, font=('Segoe UI Emoji', 10), 
+        self.attachment_text = Text(self.btn_frame, height=4, width=40, font=('Segoe UI Emoji', 10), 
                                    bd=0, bg=self.root['bg'], cursor="arrow", state='disabled')
         self.attachment_text.grid(row=0, column=0, columnspan=3, sticky='ew', padx=5, pady=(0, 5))
         
-        # 1. Plus Button (Left)
-        # Refactored to use emoji button
-        self.plus_btn = create_emoji_btn(btn_frame, "📎", "Add Attachment (Ctrl+O)", 
+        # 1. Left Actions Frame (Attachment + Search)
+        self.left_actions_frame = Frame(self.btn_frame, bg=self.root['bg'])
+        self.left_actions_frame.grid(row=1, column=0, padx=(0, 5), sticky='s', pady=5)
+
+        self.plus_btn = create_emoji_btn(self.left_actions_frame, "📎", "Add Attachment (Ctrl+O)", 
                                         self.callbacks['add_attachment'],  
                                         bg_color='#17a2b8')
-        self.plus_btn.grid(row=1, column=0, padx=(0, 5), sticky='s', pady=5)
+        self.plus_btn.pack(side=LEFT, padx=(0, 3))
+
+        # Search Button (Toggle)
+        self.search_active = False # Initialize state
+        # See toggle_search_button method below
+
+        self.search_btn = create_emoji_btn(self.left_actions_frame, "🌐", "Toggle Web Search (Ctrl+W)", 
+                                          self.toggle_search_button,
+                                          bg_color='#6c757d')
+        self.search_btn.pack(side=LEFT)
         
         # 2. Input Container (Center) - Rounded look simulation with Frame
-        input_container = Frame(btn_frame, bg="white", bd=1, relief="solid")
-        input_container.grid(row=1, column=1, sticky='ew')
-        input_container.columnconfigure(0, weight=1)
+        self.input_container = Frame(self.btn_frame, bg="white", bd=1, relief="solid")
+        self.input_container.grid(row=1, column=1, sticky='ew')
+        self.input_container.columnconfigure(0, weight=1)
 
         # Multi-line Text Input
-        self.entry = Text(input_container, height=2, font=('Segoe UI Emoji', 12), wrap=WORD, bd=0, padx=10, pady=8)
+        self.entry = Text(self.input_container, height=2, font=('Segoe UI Emoji', 12), wrap=WORD, bd=0, padx=10, pady=8)
         self.entry.grid(row=0, column=0, sticky='ew')
 
         # Custom logic for focus interaction without placeholder text
@@ -171,7 +210,7 @@ class ChatBotUI:
         self.entry.bind('<Control-Return>', lambda e: self.callbacks['send']())
         
         # Scrollbar for input
-        input_scroll = ttk.Scrollbar(input_container, orient="vertical", command=self.entry.yview)
+        input_scroll = ttk.Scrollbar(self.input_container, orient="vertical", command=self.entry.yview)
         input_scroll.grid(row=0, column=1, sticky='ns')
         self.entry.config(yscrollcommand=input_scroll.set)
 
@@ -179,21 +218,21 @@ class ChatBotUI:
         # User asked for: "send mic, clear, read all icon on right hand side of prompt box"
         # We'll put them in a frame to the right of the input container
         
-        actions_frame = ttk.Frame(btn_frame)
-        actions_frame.grid(row=1, column=2, sticky='s', padx=(5, 0), pady=0)
+        self.actions_frame = ttk.Frame(self.btn_frame)
+        self.actions_frame.grid(row=1, column=2, sticky='s', padx=(5, 0), pady=0)
 
 
 
-        self.send_btn = create_emoji_btn(actions_frame, "🚀", "Send Message (Ctrl+Enter)", self.callbacks['send'], bg_color='#28a745')
+        self.send_btn = create_emoji_btn(self.actions_frame, "🚀", "Send Message (Ctrl+Enter)", self.callbacks['send'], bg_color='#28a745')
         self.send_btn.pack(side=LEFT, padx=3)
 
-        self.mic_btn = create_emoji_btn(actions_frame, "🎙️", "Voice Input (Ctrl+M)", self.callbacks['speak'], bg_color='#fd7e14')
+        self.mic_btn = create_emoji_btn(self.actions_frame, "🎙️", "Voice Input (Ctrl+M)", self.callbacks['speak'], bg_color='#fd7e14')
         self.mic_btn.pack(side=LEFT, padx=3)
 
-        self.clear_btn = create_emoji_btn(actions_frame, "🧹", "Clear Chat (Ctrl+L)", self.callbacks['clear'], bg_color='#dc3545')
+        self.clear_btn = create_emoji_btn(self.actions_frame, "🧹", "Clear Chat (Ctrl+L)", self.callbacks['clear'], bg_color='#dc3545')
         self.clear_btn.pack(side=LEFT, padx=3)
 
-        self.read_btn = create_emoji_btn(actions_frame, "🔊", "Read All (Ctrl+R)", self.callbacks['read_all'], bg_color='#6610f2')
+        self.read_btn = create_emoji_btn(self.actions_frame, "🔊", "Read All (Ctrl+R)", self.callbacks['read_all'], bg_color='#6610f2')
         self.read_btn.pack(side=LEFT, padx=3)
         
         # === Language Data Setup (Restored for Settings) ===
@@ -213,7 +252,7 @@ class ChatBotUI:
                 self.language_options[name] = code
 
         # Spinner needs to be somewhere
-        self.spinner_label = Label(actions_frame, bg=self.root['bg'])
+        self.spinner_label = Label(self.actions_frame, bg=self.root['bg'])
         self.spinner_label.pack(side=LEFT, padx=3)
         self.spinner_label.pack_forget() # Initially hidden using pack logic
 
@@ -226,14 +265,14 @@ class ChatBotUI:
 
         self.history_panel.rowconfigure(2, weight=1)
         self.history_panel.columnconfigure(0, weight=1)
-        search_row = ttk.Frame(self.history_panel)
-        search_row.grid(row=0, column=0, columnspan=2, sticky="ew", padx=5, pady=(5, 2))
-        search_row.columnconfigure(0, weight=1)
+        self.search_row = ttk.Frame(self.history_panel)
+        self.search_row.grid(row=0, column=0, columnspan=2, sticky="ew", padx=5, pady=(5, 2))
+        self.search_row.columnconfigure(0, weight=1)
 
         self.search_var = tk.StringVar()
-        self.search_entry = ttk.Entry(search_row, textvariable=self.search_var, font=("Arial", 11))
+        self.search_entry = ttk.Entry(self.search_row, textvariable=self.search_var, font=("Arial", 11))
         self.search_entry.grid(row=0, column=0, sticky='ew')
-        search_button = ttk.Button(search_row, text="🔍", style="Color.TButton", width=3, command=self.callbacks['update_search'])
+        search_button = ttk.Button(self.search_row, text="🔍", style="Color.TButton", width=3, command=self.callbacks['update_search'])
         search_button.grid(row=0, column=1, padx=(5, 0))
         
         # Trigger search on typing
@@ -399,29 +438,32 @@ class ChatBotUI:
         filename = os.path.basename(file_path)
         ext = filename.split('.')[-1].lower()
         
-        container = Frame(parent, bg="white", bd=1, relief="solid")
-        
-        # Generate Thumbnail logic
-        thumb = None
         try:
             if ext in ['png', 'jpg', 'jpeg', 'ico', 'gif', 'bmp']:
                 img = Image.open(file_path)
                 img.thumbnail((50, 50))
                 thumb = ImageTk.PhotoImage(img)
             else:
-                img = Image.new('RGB', (100, 50), color='white')
+                # Use Amber (#FFD54F) for document icons - "Sticky Note" / "Folder" look
+                img = Image.new('RGB', (100, 50), color='#FFD54F')
                 d = ImageDraw.Draw(img)
                 prefix = ext.upper()
-                d.text((5, 15), f'{prefix}', fill='black')
+                d.text((5, 15), f'{prefix}', fill='black') # Keep black text for contrast on Amber
                 thumb = ImageTk.PhotoImage(img)
         except Exception as e:
             print(f"Error creating thumbnail: {e}")
             return None, None
 
-        lbl = Label(container, image=thumb, bg='white')
+        bg_color = "#1e1e1e" if self.is_dark else "white"
+        fg_color = "white" if self.is_dark else "black"
+        
+        # Removed border (bd=0) and relief="flat" as requested
+        container = Frame(parent, bg=bg_color, bd=0, relief="flat")
+        
+        lbl = Label(container, image=thumb, bg=bg_color)
         lbl.pack(side=TOP, padx=2, pady=2)
         
-        name_lbl = Label(container, text=filename[:8], font=("Arial", 8), bg='white')
+        name_lbl = Label(container, text=filename[:8], font=("Arial", 8), bg=bg_color, fg=fg_color)
         name_lbl.pack(side=BOTTOM)
         
         return container, thumb
@@ -434,31 +476,25 @@ class ChatBotUI:
             self.thumb_refs = []
         self.thumb_refs.append(thumb)
         
-        # Add Close Button for Input Area
-        top_row = Frame(container, bg='white')
-        top_row.place(relx=1.0, rely=0.0, anchor="ne") 
-        # Using place for overlay effect on the container can be tricky if container changes size.
-        # Let's stick to packing or simple placement. Previous implementation used pack.
-        # But wait, create_attachment_preview_frame packed lbl and name_lbl.
-        # We need to insert the close button 'before' or 'on top'. 
-        
-        # Let's rebuild the container strategy slightly or just pack it at top if possible?
-        # create_attachment_preview_frame packs items inside.
-        # Let's simply place the close button on the container.
-        
+        # Get background from container to ensure match
+        bg_color = container.cget("bg")
+
         def remove_self():
             if on_remove:
                 on_remove()
             container.destroy()
             
-        close_btn = Label(container, text="❌", font=("Arial", 7), cursor="hand2", bg='white', fg='red')
-        close_btn.place(relx=1.0, rely=0.0, anchor="ne", x=0, y=0)
-        close_btn.bind("<Button-1>", lambda e: remove_self())
+        if on_remove:
+             close_btn = Label(container, text="❌", font=("Arial", 7), cursor="hand2", bg=bg_color, fg='red')
+             close_btn.place(relx=1.0, rely=0.0, anchor="ne", x=0, y=0)
+             close_btn.bind("<Button-1>", lambda e: remove_self())
         
         self.attachment_text.config(state='normal')
         self.attachment_text.window_create(END, window=container)
         self.attachment_text.insert(END, "  ") 
         self.attachment_text.config(state='disabled')
+        
+        return container, thumb
         
     def render_image_preview_button(self, parent_text_widget, image_path):
         import os
@@ -468,7 +504,11 @@ class ChatBotUI:
 
         try:
              # Create container
-             container = Frame(parent_text_widget, bg="white", bd=1, relief="solid", padx=5, pady=5)
+             # Create container
+             bg_color = "#1e1e1e" if self.is_dark else "white"
+             fg_color = "#e0e0e0" if self.is_dark else "black"
+             
+             container = Frame(parent_text_widget, bg=bg_color, bd=1, relief="solid", padx=5, pady=5)
              
              # Thumbnail
              img = Image.open(image_path)
@@ -480,11 +520,11 @@ class ChatBotUI:
                  self.gen_thumb_refs = []
              self.gen_thumb_refs.append(thumb)
              
-             btn = Button(container, image=thumb, bg='white', cursor="hand2", 
+             btn = Button(container, image=thumb, bg=bg_color, cursor="hand2", 
                           command=lambda: os.startfile(image_path))
              btn.pack()
              
-             lbl = Label(container, text="📷 Click to View", font=("Arial", 9), bg='white', fg='blue', cursor="hand2")
+             lbl = Label(container, text="📷 Click to View", font=("Arial", 9), bg=bg_color, fg='blue', cursor="hand2")
              lbl.pack(pady=(2,0))
              lbl.bind("<Button-1>", lambda e: os.startfile(image_path))
              
@@ -502,7 +542,9 @@ class ChatBotUI:
         self.text.config(state='normal')
         
         # Container for the row of attachments
-        row_frame = Frame(self.text, bg='white')
+        # Use theme-aware background or match text widget
+        bg_color = "#1e1e1e" if self.is_dark else "white"
+        row_frame = Frame(self.text, bg=bg_color)
         
         for file_path in attachments_list:
             import os
@@ -526,13 +568,19 @@ class ChatBotUI:
         self.text.delete(1.0, END)
         
         # Center container
-        container = Frame(self.text, bg="#f0f0f0") # Default greyish for cards background
+        # Center container
+        bg_color = "#1e1e1e" if self.is_dark else "white"
+        
+        container = Frame(self.text, bg=bg_color)
+        
         # Actually user wants "gemini-like". White background for main text usually.
         # Let's use white for container if text bg is white.
-        bg_color = self.text.cget("bg")
-        container.config(bg=bg_color)
+        # bg_color = self.text.cget("bg") # Prefer is_dark
+        # container.config(bg=bg_color)
         
         # Welcome Header
+        import os
+        username = os.getlogin()
         import os
         username = os.getlogin()
         header = Label(container, text=f"Hello, {username}", font=("Arial", 28, "bold"), 
@@ -553,27 +601,42 @@ class ChatBotUI:
             {"icon": "💡", "title": "Explain Concept", "prompt": "Explain quantum computing in simple terms"}
         ]
         
+        
         def create_card(parent, item, index):
-             card = Frame(parent, bg="#f8f9fa", bd=1, relief="flat", width=200, height=120, cursor="hand2")
+             card_bg = "#2d2d2d" if self.is_dark else "#f8f9fa"
+             card_fg = "#e0e0e0" if self.is_dark else "#202124"
+             card_hover = "#3d3d3d" if self.is_dark else "#e8f0fe"
+             icon_color = "#e0e0e0" if self.is_dark else "#5f6368"
+             
+             card = Frame(parent, bg=card_bg, bd=1, relief="flat", width=200, height=120, cursor="hand2")
              card.pack_propagate(False) # Fixed size
              
              # Hover effect
-             def on_enter(e): card.config(bg="#e8f0fe")
-             def on_leave(e): card.config(bg="#f8f9fa")
+             def on_enter(e): 
+                 hover_bg = "#3d3d3d" if self.is_dark else "#e8f0fe"
+                 card.config(bg=hover_bg)
+                 
+             def on_leave(e): 
+                 normal_bg = "#2d2d2d" if self.is_dark else "#f8f9fa"
+                 card.config(bg=normal_bg)
+                 
              card.bind("<Enter>", on_enter)
              card.bind("<Leave>", on_leave)
              
              # Content
-             icon = Label(card, text=item["icon"], font=("Segoe UI Emoji", 20), bg="#f8f9fa", fg="#5f6368",cursor='hand2')
+             icon = Label(card, text=item["icon"], font=("Segoe UI Emoji", 20), bg=card_bg, fg=icon_color,cursor='hand2')
              icon.pack(anchor="nw", padx=10, pady=(10, 0))
              
-             title = Label(card, text=item["title"], font=("Arial", 11, "bold"), bg="#f8f9fa", fg="#202124",cursor='hand2')
+             title = Label(card, text=item["title"], font=("Arial", 11, "bold"), bg=card_bg, fg=card_fg,cursor='hand2')
              title.pack(anchor="nw", padx=10, pady=(5, 0))
              
              # Click bindings
              card.bind("<Button-1>", lambda e: command_callback(item["prompt"]))
              for child in card.winfo_children():
                  child.bind("<Button-1>", lambda e: command_callback(item["prompt"]))
+                 # Use same dynamic hover for children
+                 child.bind("<Enter>", on_enter)
+                 child.bind("<Leave>", on_leave)
                  # child.bind("<Enter>", lambda e: card.config(bg="#e8f0fe")) # Propagate hover?
              
              return card
@@ -614,6 +677,8 @@ class ChatBotUI:
         self.history_visible = not self.history_visible
 
     def toggle_dark_mode(self, enabled):
+        self.is_dark = enabled
+        
         # Color Palettes
         THEME_LIGHT = {
             "bg": "powderblue",
@@ -645,8 +710,24 @@ class ChatBotUI:
         self.time_lbl.config(background=colors["bg"] if enabled else "white", foreground="gold")
         self.hamburger_btn.config(bg=colors["text_bg"] if enabled else "white", activebackground=colors["text_bg"])
         
-        # 2. Text Area
+        # Update Help Button Image and BG
+        new_help_icon = self.help_icon_dark if enabled else self.help_icon
+        self.help_btn.config(
+            image=new_help_icon,
+            bg="#2e2e2e" if enabled else "white", 
+            activebackground="#2e2e2e" if enabled else "white"
+        )
+        
+        # 2. Text Area (Input & Main Chat)
         self.text.config(bg=colors["text_bg"], fg=colors["text_fg"], insertbackground=colors["text_fg"])
+        
+        # Update Input Area
+        self.input_container.config(bg=colors["input_bg"], bd=1, relief="solid" if enabled else "solid") 
+        # Note: 'solid' border works for both, but we can tweak if needed.
+        
+        self.entry.config(bg=colors["input_bg"], fg=colors["input_fg"], insertbackground=colors["input_fg"])
+        self.attachment_text.config(bg=colors["bg"]) # Match root background
+        self.left_actions_frame.config(bg=colors["bg"]) # Match root background
         
         # Update Text Tags for Visibility
         if enabled:
@@ -670,6 +751,11 @@ class ChatBotUI:
         # Helper to recursively update widgets
         def update_widget_theme(widget):
             try:
+                # Optimized Manual Update Method
+                if hasattr(widget, 'update_manual_theme'):
+                     widget.update_manual_theme(enabled)
+                     return # Skip recursion if handled manually
+
                 # GLOBAL EXCLUSION: Skip ANY widget that has an image content
                 # This covers LaTeX labels, Thumbnails, etc.
                 has_img = False
@@ -687,22 +773,46 @@ class ChatBotUI:
                 w_class = widget.winfo_class()
                 
                 # Frames (Cards, Bubbles, Containers)
+                # Frames (Cards, Bubbles, Containers)
                 if w_class == 'Frame':
                     # Heuristic: If it was white/light grey, make it dark. 
-                    # If it was colorful (red/green buttons), keep it? 
-                    # Use current bg to decide?
                     current_bg = widget.cget('bg')
                     
-                    # Cards Logic (Welcome Screen)
                     if enabled:
-                        if current_bg in ["#f8f9fa", "#e8f0fe", "white", "#f0f0f0"]:
+                        if current_bg in ["#f8f9fa", "#e8f0fe", "white", "#f0f0f0", "SystemButtonFace"]:
                              widget.config(bg=colors["card_bg"])
                     else:
                         if current_bg in ["#2d2d2d", "#3d3d3d", "#1e1e1e"]:
                              widget.config(bg=colors["card_bg"])
-                             
+                
+                # TFrame (Themed Frames like search_row)
+                elif w_class == 'TFrame':
+                     # Explicitly handle history panel search row if needed, 
+                     # but TFrame usually relies on Style.
+                     pass
+
+                # Canvas (Table Scrollables)
+                elif w_class == 'Canvas':
+                    widget.config(bg=colors["sidebar_bg"] if enabled else "white")
+
+                # Text (Table Cells)
+                # Note: Main chat text is self.text, dealt with separately. 
+                # These are sub-text widgets in tables.
+                elif w_class == 'Text':
+                    if widget != self.text and widget != self.entry and widget != self.attachment_text:
+                         widget.config(bg=colors["text_bg"], 
+                                       fg=colors["text_fg"], 
+                                       bd=1, relief="solid") # Ensure border visible
+
                 # Labels (Text inside cards/bubbles)
                 elif w_class == 'Label':
+                    # CRITICAL: Preserve Green Headers
+                    current_bg = widget.cget('bg')
+                    if current_bg == "#4CAF50" or current_bg == "green":
+                         # Force it to stay green and white text
+                         widget.config(fg="white") 
+                         return # Do not change BG
+
                     # Update FG/BG
                     widget.config(bg=widget.master.cget('bg')) # Match parent
                     
@@ -720,12 +830,17 @@ class ChatBotUI:
                              
                 # Buttons (Embedded ones)
                 elif w_class == 'Button':
-                     # Copy buttons etc.
-                     if "📋" in widget.cget("text") or "🔊" in widget.cget("text") or "📷" in widget.cget("text"):
-                         widget.config(bg=widget.master.cget('bg'), 
-                                       fg=colors["text_fg"], 
-                                       activebackground=widget.master.cget('bg'))
+                         # Copy buttons etc.
+                         if "📋" in widget.cget("text") or "🔊" in widget.cget("text") or "📷" in widget.cget("text") or "⏹️" in widget.cget("text") or "⋯" in widget.cget("text"):
+                             widget.config(bg=widget.master.cget('bg'), 
+                                           fg=colors["text_fg"], 
+                                           activebackground=widget.master.cget('bg'))
                 
+                # Custom Exclusion for TButton (Green Buttons)
+                elif w_class == 'TButton':
+                    # Do not touch TButtons associated with specific styles
+                    pass
+
                 # Recurse
                 for child in widget.winfo_children():
                     update_widget_theme(child)
@@ -739,7 +854,19 @@ class ChatBotUI:
             update_widget_theme(widget)
             
            
-            pass
+            
+        # Update History Panel explicitly to fix "White Patches"
+        update_widget_theme(self.history_panel)
+        
+        # Update Right-Click Menu
+        menu_bg = "#2d2d2d" if enabled else "white"
+        menu_fg = "white" if enabled else "black"
+        menu_active_b = "#3d3d3d" if enabled else "#e0e0e0"
+        menu_active_f = "white" if enabled else "black"
+        
+        self.right_click_menu.config(bg=menu_bg, fg=menu_fg, 
+                                     activebackground=menu_active_b, 
+                                     activeforeground=menu_active_f)
         
         # 5. Input Area (If we access it, self.entry is Text)
         self.entry.config(bg=colors["input_bg"], fg=colors["input_fg"], insertbackground=colors["input_fg"])
@@ -748,4 +875,103 @@ class ChatBotUI:
         
         # Attachment text
         self.attachment_text.config(bg=colors["bg"], fg=colors["text_fg"])
+        
+        self.left_actions_frame.config(bg=colors["bg"])
+        
+        # Fixed: Update spinner background
+        self.spinner_label.config(bg=colors["bg"])
+        
+        # Swap spinner frames for composite fix
+        self.spinner_frames = self.spinner_frames_dark if enabled else self.spinner_frames_light
+        
+        # 6. Treeview (Tables)
+        style = ttk.Style()
+        if enabled:
+            # Search Row & Entry
+            self.search_row.config(style="Dark.TFrame") 
+            style.configure("Dark.TEntry", fieldbackground="#404040", foreground="white", insertcolor="white")
+            self.search_entry.config(style="Dark.TEntry")
+
+            style.configure("Treeview", 
+                            background="#2d2d2d", 
+                            foreground="white", 
+                            fieldbackground="#2d2d2d",
+                            rowheight=25)
+            style.configure("Treeview.Heading", 
+                            background="#3d3d3d",
+                            foreground="white",
+                            relief="flat")
+            style.map("Treeview", background=[('selected', '#404040')],
+                      foreground=[('selected', 'white')])
+                      
+            # Scrollbar Dark Mode
+            style.configure("Vertical.TScrollbar",
+                            troughcolor="#2e2e2e",
+                            background="#555555",
+                            bordercolor="#2e2e2e",
+                            arrowcolor="white",
+                            relief="flat")
+            style.map("Vertical.TScrollbar",
+                      background=[('active', '#666666'), ('disabled', '#2e2e2e')])
+                      
+            style.configure("Horizontal.TScrollbar",
+                            troughcolor="#2e2e2e",
+                            background="#555555",
+                            bordercolor="#2e2e2e",
+                            arrowcolor="white",
+                            relief="flat")
+            style.map("Horizontal.TScrollbar",
+                      background=[('active', '#666666'), ('disabled', '#2e2e2e')])
+
+            # Button Frame Dark Mode
+            style.configure("Dark.TFrame", background=colors["bg"])
+            self.btn_frame.config(style="Dark.TFrame")
+            self.actions_frame.config(style="Dark.TFrame")
+        else:
+            self.search_row.config(style="TFrame")
+            style.configure("TEntry", fieldbackground="white", foreground="black", insertcolor="black")
+            self.search_entry.config(style="TEntry") 
+            
+            style.configure("Treeview", 
+                            background="white", 
+                            foreground="black", 
+                            fieldbackground="white",
+                            rowheight=25)
+            style.configure("Treeview.Heading", 
+                            background="#f0f0f0", 
+                            foreground="black",
+                            relief="flat")
+            style.map("Treeview", background=[('selected', '#0078D7')],
+                      foreground=[('selected', 'white')])
+
+            # Scrollbar Light Mode (Reset to defaults or explicit light)
+            style.configure("Vertical.TScrollbar",
+                            troughcolor="#f0f0f0",
+                            background="#cdcdcd",
+                            bordercolor="#f0f0f0",
+                            arrowcolor="black",
+                            relief="flat")
+            style.map("Vertical.TScrollbar",
+                      background=[('active', '#a6a6a6'), ('disabled', '#f0f0f0')])
+                      
+            style.configure("Horizontal.TScrollbar",
+                            troughcolor="#f0f0f0",
+                            background="#cdcdcd",
+                            bordercolor="#f0f0f0",
+                            arrowcolor="black",
+                            relief="flat")
+            style.map("Horizontal.TScrollbar",
+                      background=[('active', '#a6a6a6'), ('disabled', '#f0f0f0')])
+
+            # Button Frame Light Mode
+            style.configure("Light.TFrame", background="#b0e0e6")
+            self.btn_frame.config(style="Light.TFrame")
+            self.actions_frame.config(style="Light.TFrame")
+
+    def toggle_search_button(self):
+        self.search_active = not self.search_active
+        if self.search_active:
+             self.search_btn.config(bg="#ffc107", fg="black") # Active Yellow
+        else:
+             self.search_btn.config(bg="#6c757d", fg="white") # Inactive Grey
 

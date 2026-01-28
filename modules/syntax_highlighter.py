@@ -44,25 +44,41 @@ class SyntaxHighlighter:
             return "bash"
         return "text"
 
-    def insert_code_snippet(self, lang, code):
+    def insert_code_snippet(self, lang, code, is_dark=False):
         self.text.insert(END, '\n')
         
+        # Theme Colors
+        if is_dark:
+            frame_bg = '#1e1e1e' 
+            text_bg = '#2d2d2d'
+            text_fg = '#e0e0e0'
+            copy_bg = '#3d3d3d'
+            copy_active = '#4d4d4d'
+            copy_fg = 'white'
+        else:
+            frame_bg = '#f0f0f0' 
+            text_bg = '#f4f4f4'
+            text_fg = 'black'
+            copy_bg = '#e0e0e0'
+            copy_active = '#d0d0d0'
+            copy_fg = 'black'
+
         # Create a frame for the code block with border
-        code_frame = Frame(self.text, bg='#f0f0f0', bd=1, relief=SOLID)
+        code_frame = Frame(self.text, bg=frame_bg, bd=1, relief=SOLID)
         
         # Add language label at top-left with better styling
         lang_label = Label(code_frame, 
                         text=lang.upper(), 
                         font=("Arial", 9, "bold"),
-                        bg="#4CAF50",  # Green background
-                        fg="white",    # White text
+                        bg="#4CAF50",  # Always Green
+                        fg="white",    # Always White
                         padx=6,
                         pady=2,
                         bd=0)
         lang_label.pack(side=TOP, anchor=NW, padx=5, pady=(5,0))
         
         # Create inner frame for code and scrollbars
-        inner_frame = Frame(code_frame, bg='#f4f4f4')
+        inner_frame = Frame(code_frame, bg=text_bg)
         inner_frame.pack(fill=BOTH, expand=True, padx=5, pady=(0,5))
         
         # Add line numbers
@@ -71,7 +87,8 @@ class SyntaxHighlighter:
         
         # Create the text widget for code display
         code_text = Text(inner_frame, 
-                        bg='#f4f4f4', 
+                        bg=text_bg, 
+                        fg=text_fg,
                         font=("Courier New", 11), 
                         wrap=NONE,
                         padx=5, 
@@ -120,6 +137,24 @@ class SyntaxHighlighter:
         # Add the code frame to main text widget
         self.text.window_create(END, window=code_frame)
         
+        # === OPTIMIZED THEME UPDATE CALLBACK ===
+        def manual_theme_update(is_dark_mode):
+            if is_dark_mode:
+                f_bg, t_bg, t_fg = '#1e1e1e', '#2d2d2d', '#e0e0e0'
+                c_bg, c_fg, c_active = '#3d3d3d', 'white', '#4d4d4d'
+            else:
+                f_bg, t_bg, t_fg = '#f0f0f0', '#f4f4f4', 'black'
+                c_bg, c_fg, c_active = '#e0e0e0', 'black', '#d0d0d0'
+            
+            code_frame.config(bg=f_bg)
+            inner_frame.config(bg=t_bg)
+            code_text.config(bg=t_bg, fg=t_fg)
+            copy_btn.config(bg=c_bg, fg=c_fg, activebackground=c_active)
+            edit_btn.config(bg=c_bg, fg=c_fg, activebackground=c_active)
+            # lang_label persists as Green/White via initial setup
+        
+        code_frame.update_manual_theme = manual_theme_update
+
         # --- Context Menu for Code Block ---
         def show_code_context_menu(event):
             menu = tk.Menu(self.root, tearoff=0)
@@ -160,8 +195,9 @@ class SyntaxHighlighter:
                           font=("Arial", 8),
                           command=lambda c=code, btn=copy_btn_text: copy_code_with_feedback(self.root, c, btn),
                           relief=FLAT,
-                          bg="#e0e0e0",
-                          activebackground="#d0d0d0",
+                          bg=copy_bg,
+                          fg=copy_fg,
+                          activebackground=copy_active,
                           cursor='hand2')
         copy_btn.place(relx=1.0, rely=0.0, anchor=NE, x=-85, y=5)
 
@@ -180,8 +216,9 @@ class SyntaxHighlighter:
                           font=("Arial", 8),
                           command=toggle_edit,
                           relief=FLAT,
-                          bg="#e0e0e0",
-                          activebackground="#d0d0d0",
+                          bg=copy_bg,
+                          fg=copy_fg,
+                          activebackground=copy_active,
                           cursor='hand2')
         edit_btn.place(relx=1.0, rely=0.0, anchor=NE, x=-25, y=5)
 

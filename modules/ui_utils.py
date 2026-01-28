@@ -30,29 +30,71 @@ def remove_explanation_lines(code):
     lines = [line for line in code.split('\n') if line.strip() or line == '']
     return '\n'.join(lines).strip()
 
-def render_latex_equation(text_widget, latex_expr):
+def render_latex_equation(text_widget, latex_expr, is_dark=False):
     try:
         # Create the figure and render math
         fig, ax = plt.subplots(figsize=(0.01, 0.01))
         fig.patch.set_visible(False)
         ax.axis('off')
+        
+        # Render roughly Black text initially
         ax.text(0.5, 0.5, f"${latex_expr}$", horizontalalignment='center',
-                verticalalignment='center', fontsize=16)
+                verticalalignment='center', fontsize=16, color='black')
 
         # Save to temp file and close plot
         temp_dir = tempfile.gettempdir()
         temp_path = os.path.join(temp_dir, f"latex_{int(time.time() * 1000)}.png")
-        plt.savefig(temp_path, dpi=150, bbox_inches='tight', pad_inches=0.2)
+        plt.savefig(temp_path, dpi=150, bbox_inches='tight', pad_inches=0.2, transparent=True)
         plt.close(fig)
 
         # Load image in main thread (from file)
-        img = Image.open(temp_path)
-        img = ImageTk.PhotoImage(img)
+        img_light = Image.open(temp_path).convert("RGBA")
         os.remove(temp_path)
+        
+        # Create Dark Version (Invert colors efficiently)
+        # We want White text where it was Black, keeping Alpha.
+        # Since source is Black text on Transparent, we can just create a White image and use source Alpha.
+        r, g, b, alpha = img_light.split()
+        img_dark = Image.merge("RGBA", (
+            Image.new("L", img_light.size, 255), # R=255 (White)
+            Image.new("L", img_light.size, 255), # G=255
+            Image.new("L", img_light.size, 255), # B=255
+            alpha # Original Alpha
+        ))
+        
+        # Convert to PhotoImage
+        tk_img_light = ImageTk.PhotoImage(img_light)
+        tk_img_dark = ImageTk.PhotoImage(img_dark)
+
+        # Initial State
+        current_img = tk_img_dark if is_dark else tk_img_light
+        current_bg = text_widget.cget("bg") # Match parent text widget
 
         # Embed into tkinter text widget
-        image_label = Label(text_widget, image=img, bg='white')
-        image_label.image = img  # Keep reference
+        # Note: bg='white' hardcoded previously might show box. Using parent bg is better.
+        image_label = Label(text_widget, image=current_img, bg=current_bg)
+        
+        # Store references to BOTH images to prevent GC
+        image_label.img_light_ref = tk_img_light
+        image_label.img_dark_ref = tk_img_dark
+        
+        # === OPTIMIZED THEME UPDATE CALLBACK ===
+        def manual_theme_update(is_dark_mode):
+            target_img = image_label.img_dark_ref if is_dark_mode else image_label.img_light_ref
+            # Need to match the text widget background which might have changed
+            # We can assume standard theme colors or query parent? 
+            # Querying parent during update might render Old color if parent hasn't updated yet.
+            # Safer to use the standard theme colors we know.
+            # Dynamic Background Matching:
+            try:
+                target_bg = text_widget.cget('bg')
+            except:
+                target_bg = '#1e1e1e' if is_dark_mode else 'white'
+
+            image_label.config(image=target_img, bg=target_bg)
+            
+        image_label.update_manual_theme = manual_theme_update
+        
         text_widget.window_create(END, window=image_label)
         text_widget.insert(END, '\n')
 
@@ -84,7 +126,7 @@ def bind_mousewheel(widget, target_canvas):
     widget.bind("<Enter>", on_enter)
     widget.bind("<Leave>", on_leave)
 
-def insert_markdown_table(text_widget, table_text, root, language_code="en"):
+def insert_markdown_table(text_widget, table_text, root, language_code="en", is_dark=False):
     lines = [line.strip() for line in table_text.split('\n') if line.strip()]
     if len(lines) < 2:
         return
@@ -98,14 +140,19 @@ def insert_markdown_table(text_widget, table_text, root, language_code="en"):
 
     col_widths = [max(len(headers[i]), *(len(row[i]) for row in rows)) for i in range(len(headers))]
     col_pixel_widths = [min(max(w * 7, 150), 400) for w in col_widths]
+    
+    # Theme Colors
+    bg_color = "#1e1e1e" if is_dark else "white"
+    fg_color = "#e0e0e0" if is_dark else "black"
+    scroll_bg = "#2e2e2e" if is_dark else "white"
 
     # === OUTER table frame ===
-    outer_frame = Frame(text_widget, bg='white', bd=1, relief=SOLID)
+    outer_frame = Frame(text_widget, bg=bg_color, bd=1, relief=SOLID)
     outer_frame.config(width=700, height=240)
     outer_frame.pack_propagate(False)
 
     # === Canvas for scrollable table ===
-    canvas = Canvas(outer_frame, bg='white', highlightthickness=0)
+    canvas = Canvas(outer_frame, bg=scroll_bg, highlightthickness=0)
     canvas.pack(side=LEFT, fill=BOTH, expand=True)
 
     vsb = ttk.Scrollbar(outer_frame, orient="vertical", command=canvas.yview)
@@ -117,7 +164,7 @@ def insert_markdown_table(text_widget, table_text, root, language_code="en"):
     canvas.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
 
     # === Inner frame ===
-    inner_frame = Frame(canvas, bg='white')
+    inner_frame = Frame(canvas, bg=bg_color)
     canvas.create_window((0, 0), window=inner_frame, anchor="nw")
 
     # === Scroll region binding ===
@@ -130,6 +177,31 @@ def insert_markdown_table(text_widget, table_text, root, language_code="en"):
 
     bind_mousewheel(canvas, canvas)
     
+    # Store reference to all created cell widgets for performing bulk updates properly
+    all_table_cells = [] 
+    
+    # === OPTIMIZED THEME UPDATE CALLBACK ===
+    def manual_theme_update(is_dark_mode):
+        bg_c = "#1e1e1e" if is_dark_mode else "white"
+        fg_c = "#e0e0e0" if is_dark_mode else "black"
+        scroll_c = "#2e2e2e" if is_dark_mode else "white"
+        
+        outer_frame.config(bg=bg_c)
+        canvas.config(bg=scroll_c)
+        inner_frame.config(bg=bg_c)
+        
+        # Copy Button needs update too (created later, but scope is shared)
+        # We can update it if it exists
+        if 'copy_btn' in locals():
+             copy_btn_bg = "#3d3d3d" if is_dark_mode else "#e0e0e0"
+             copy_btn_fg = "white" if is_dark_mode else "black"
+             copy_btn_active = "#4d4d4d" if is_dark_mode else "#d0d0d0"
+             copy_btn.config(bg=copy_btn_bg, fg=copy_btn_fg, activebackground=copy_btn_active)
+
+        for cell in all_table_cells:
+            cell.config(bg=bg_c, fg=fg_c)
+            
+    outer_frame.update_manual_theme = manual_theme_update
 
     # === Headers ===
     for col_index, header in enumerate(headers):
@@ -178,7 +250,7 @@ def insert_markdown_table(text_widget, table_text, root, language_code="en"):
             for col_index, value in enumerate(row_values):
                 cell_text_widget = Text(inner_frame, height=4, width=int(col_pixel_widths[col_index] / 7),
                                 wrap=WORD, padx=6, pady=2, font=("Arial", 10),
-                                bd=1, relief="solid", bg="white")
+                                bd=1, relief="solid", bg=bg_color, fg=fg_color)
                 
                 cell_text_widget.tag_configure("bold", font=("Arial", 10, "bold"))
                 
@@ -191,6 +263,9 @@ def insert_markdown_table(text_widget, table_text, root, language_code="en"):
                 
                 cell_text_widget.config(state=DISABLED)
                 cell_text_widget.grid(row=grid_row, column=col_index, sticky="nsew")
+                
+                # Track for optimized update
+                all_table_cells.append(cell_text_widget)
 
                 # Bindings
                 cell_text_widget.bind("<Control-s>", lambda e, w=cell_text_widget: (w.focus_set(), read_selected_text_from_widget(w)))
@@ -222,8 +297,14 @@ def insert_markdown_table(text_widget, table_text, root, language_code="en"):
 
     # === Copy Button (outside canvas) ===
     copy_btn_text = tk.StringVar(value="📋 Copy")
+    
+    # Theme-aware colors for initial creation
+    c_bg = "#3d3d3d" if is_dark else "#e0e0e0"
+    c_fg = "white" if is_dark else "black"
+    c_active = "#4d4d4d" if is_dark else "#d0d0d0"
+    
     copy_btn = Button(outer_frame, textvariable=copy_btn_text,
-                    font=("Arial", 6), bg="#e0e0e0", activebackground="#d0d0d0",
+                    font=("Arial", 6), bg=c_bg, fg=c_fg, activebackground=c_active, activeforeground=c_fg,
                     relief=FLAT, cursor="hand2",
                     command=lambda: copy_code_with_feedback(root, table_text, copy_btn_text))
     copy_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-16, y=3)

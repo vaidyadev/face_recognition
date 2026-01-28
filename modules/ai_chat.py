@@ -1,19 +1,12 @@
 import os
 import json
 import base64
+import time
 from datetime import datetime
 from openai import OpenAI
 import PIL.Image
 from google import genai
-from .database import load_attendance_data
-
-# Initialize Clients
-# OpenRouter Client
-# Start of imports
-import openai
-from openai import OpenAI
-import PIL.Image
-from google import genai
+from google.genai import types
 from .database import load_attendance_data
 
 # Initialize Clients
@@ -61,17 +54,45 @@ def handle_multimodal_gemini(prompt, attachments):
         for path in attachments:
             if not os.path.exists(path):
                 continue
-                
+            
+            # Check file size (5MB limit)
+            file_size_mb = os.path.getsize(path) / (1024 * 1024)
+            if file_size_mb > 5:
+                # You might want to return an error or just skip/warn
+                print(f"Skipping {path}: File size {file_size_mb:.2f}MB exceeds 5MB limit.")
+                continue
+
             ext = os.path.splitext(path)[1].lower()
             if ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico']:
                 img = PIL.Image.open(path)
                 contents.append(img)
-            elif ext in ['.pdf', '.txt', '.py', '.json', '.docx']:
+            elif ext in ['.pdf', '.txt', '.py', '.json', '.docx', '.csv', '.html']:
                 try:
                     uploaded_file = google_client.files.upload(file=path)
                     contents.append(uploaded_file)
                 except Exception as up_e:
                     print(f"Upload failed for {path}: {up_e}")
+            elif ext in ['.mp3', '.wav', '.aac', '.flac', '.ogg', 
+                         '.mp4', '.mpeg', '.mov', '.avi', '.flv', '.mpg', '.webm', '.wmv', '.3gpp']:
+                try:
+                    uploaded_file = google_client.files.upload(file=path)
+                    
+                    # For video/audio, we stick to the wait logic if needed, 
+                    # though audio is usually instant. Video needs processing check.
+                    # We can check processing for both safety.
+                    
+                    while uploaded_file.state.name == "PROCESSING":
+                        print(f"Processing {path}...")
+                        time.sleep(2)
+                        uploaded_file = google_client.files.get(name=uploaded_file.name)
+                        
+                    if uploaded_file.state.name == "FAILED":
+                        print(f"Processing failed for {path}")
+                        continue
+                        
+                    contents.append(uploaded_file)
+                except Exception as up_e:
+                     print(f"Upload failed for {path}: {up_e}")
         
         contents.append(prompt)
         
@@ -157,14 +178,17 @@ def handle_image_generation(prompt, attachments=None):
     except Exception as e:
         return f"Image Gen Error: {str(e)}"
 
-
-def ask_openai(prompt, session_messages, response_cache, cache_file, attachments=None, model_name=None):
+def ask_openai(prompt, session_messages, response_cache, cache_file, attachments=None, model_name=None, search_enabled=False):
     try:
         lower_prompt = prompt.lower()
         
         
         if model_name and ('gemini' in model_name.lower() or 'google' in model_name.lower()):
             # if attachments and len(attachments) > 0:
+                 # Note: multimodal handler doesn't support chat session history yet, 
+                 # but chatbot2 calls ask_gemini_chat for sticky sessions.
+                 # If this fallback is hit, we should pass search_enabled if implemented in handle_multimodal_gemini too.
+                 # For now, let's just pass it or not. handle_multimodal_gemini needs update if we want search there too.
                  return handle_multimodal_gemini(prompt, attachments)
 
         if model_name and 'seedream' in model_name.lower():
@@ -219,6 +243,12 @@ def ask_openai(prompt, session_messages, response_cache, cache_file, attachments
 
         # Use provided model name from settings or default
         selected_model = model_name or "tngtech/deepseek-r1t2-chimera:free"
+        
+        if search_enabled:
+             if "deepseek" in selected_model.lower() and "online" not in selected_model.lower():
+                  selected_model = f"{selected_model}:online"
+                  print(f"DEBUG: Search Enabled -> Switching to {selected_model}")
+
         print(f"DEBUG: Using Model -> {selected_model}")
         
         # Make OpenAI API request
@@ -321,9 +351,9 @@ def create_gemini_chat(history=None):
         print(f"Error creating Gemini chat: {e}")
         return None
 
-def ask_gemini_chat(chat_session, prompt, attachments=None):
+def ask_gemini_chat(chat_session, prompt, attachments=None, search_enabled=False):
     try:
-        print("DEBUG: Using Model -> gemini-2.5-flash-lite(Sticky Session)")
+        print(f"DEBUG: Using Model -> gemini-2.5-flash-lite(Sticky Session) | Search: {search_enabled}")
         contents = []
         
         # Add attachments to contents
@@ -331,13 +361,36 @@ def ask_gemini_chat(chat_session, prompt, attachments=None):
             for path in attachments:
                 if not os.path.exists(path): continue
                 
+                # Check file size (5MB limit)
+                file_size_mb = os.path.getsize(path) / (1024 * 1024)
+                if file_size_mb > 5:
+                    print(f"Skipping {path}: File size {file_size_mb:.2f}MB exceeds 5MB limit.")
+                    continue
+                
                 ext = os.path.splitext(path)[1].lower()
                 if ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico']:
                     img = PIL.Image.open(path)
                     contents.append(img)
-                elif ext in ['.pdf', '.txt', '.py', '.json', '.docx']:
+                elif ext in ['.pdf', '.txt', '.py', '.json', '.docx', '.csv', '.html']:
                     try:
                         uploaded_file = google_client.files.upload(file=path)
+                        contents.append(uploaded_file)
+                    except Exception as up_e:
+                        print(f"Upload failed for {path}: {up_e}")
+                elif ext in ['.mp3', '.wav', '.aac', '.flac', '.ogg', 
+                             '.mp4', '.mpeg', '.mov', '.avi', '.flv', '.mpg', '.webm', '.wmv', '.3gpp']:
+                    try:
+                        uploaded_file = google_client.files.upload(file=path)
+                        
+                        while uploaded_file.state.name == "PROCESSING":
+                            print(f"Processing {path}...")
+                            time.sleep(2)
+                            uploaded_file = google_client.files.get(name=uploaded_file.name)
+                            
+                        if uploaded_file.state.name == "FAILED":
+                            print(f"Processing failed for {path}")
+                            continue
+
                         contents.append(uploaded_file)
                     except Exception as up_e:
                         print(f"Upload failed for {path}: {up_e}")
@@ -345,9 +398,17 @@ def ask_gemini_chat(chat_session, prompt, attachments=None):
         # Add prompt text
         contents.append(prompt)
         
-        response = chat_session.send_message(contents)
-        return response.text
-        response = chat_session.send_message(contents)
+        config = None
+        if search_enabled:
+             print("DEBUG: Enabling Google Search Tool")
+             grounding_tool = types.Tool(
+                google_search=types.GoogleSearch()
+             )
+             config = types.GenerateContentConfig(
+                tools=[grounding_tool]
+             )
+        
+        response = chat_session.send_message(contents, config=config)
         return response.text
     except Exception as e:
         error_msg = str(e)

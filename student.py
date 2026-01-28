@@ -14,6 +14,15 @@ import tkinter as tk
 from tkinter import ttk
 import numpy as np
 import os
+from openpyxl import Workbook
+import csv
+import json
+from tkinter import filedialog
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet
 
 class DatePickerDialog:
     def __init__(self, parent, initial_date, callback):
@@ -299,8 +308,8 @@ class students:
 
         email_label=Label(class_student_frame,text='Email :',font=('times new roman', 12, 'bold'),bg='white')
         email_label.grid(row=3,column=0,padx=5,sticky=W)
-        email_entry=ttk.Entry(class_student_frame,width=20,font=('times new roman', 12, 'bold'),textvariable=self.var_email)
-        email_entry.grid(row=3,column=1,padx=5,pady=3,sticky=W)
+        email_entry=ttk.Entry(class_student_frame,width=24,font=('times new roman', 10, 'bold'),textvariable=self.var_email)
+        email_entry.grid(row=3,column=1,padx=(3,2),pady=3,sticky=W)
         
         phono_label=Label(class_student_frame,text='Phone NO :',font=('times new roman', 12, 'bold'),bg='white')
         phono_label.grid(row=3,column=2,padx=5,sticky=W)
@@ -355,11 +364,11 @@ class students:
         btn_frame1=Frame(class_student_frame,bd=2,relief=RIDGE,bg='white')
         btn_frame1.place(x=0,y=225,width=635,height=35)
 
-        take_photo_btn=Button(btn_frame1,text="Take Photo Sample",width=45,height=2,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.photo_sample,padx=(1.9))
-        take_photo_btn.grid(row=1,column=0)
+        self.take_photo_btn=Button(btn_frame1,text="Take Photo Sample",width=45,height=2,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.photo_sample,padx=(1.9))
+        self.take_photo_btn.grid(row=1,column=0)
 
-        update_photo_btn=Button(btn_frame1,text="Update Photo Sample",height=2,width=45,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_photosample)
-        update_photo_btn.grid(row=1,column=1)
+        self.update_photo_btn=Button(btn_frame1,text="Update Photo Sample",height=2,width=45,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_photosample)
+        self.update_photo_btn.grid(row=1,column=1)
 
         right_frame=LabelFrame(main_frame,bd=2,bg='white',relief=RIDGE,text='Students Details',font=('times new roman', 12, 'bold'))
         right_frame.place(x=665,y=10,width=645,height=480)
@@ -384,15 +393,18 @@ class students:
         search_combo.set("Select Option")
         search_combo.grid(row=0,column=1,padx=2,sticky=W)
 
-        search_entry = ttk.Entry(search_frame,width=18,font=('times new roman', 12, 'bold'),textvariable=self.var_search_entry)
+        search_entry = ttk.Entry(search_frame,width=15,font=('times new roman', 12, 'bold'),textvariable=self.var_search_entry)
         search_entry.grid(row=0, column=2, padx=2, pady=3, sticky=W)
         search_entry.bind("<KeyRelease>", self.live_search)
 
-        reset_btn = Button(search_frame,text="Reset",width=10,cursor='hand2',font=('times new roman', 10, 'bold'),bg='green',fg='white',activebackground="red",activeforeground='green',command=self.reset_search)
+        reset_btn = Button(search_frame,text="Reset",width=8,cursor='hand2',font=('times new roman', 10, 'bold'),bg='green',fg='white',activebackground="red",activeforeground='green',command=self.reset_search)
         reset_btn.grid(row=0, column=3, padx=2)
-        showall_btn=Button(search_frame,text="Refresh",width=10,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=lambda: self.refresh_animation(self.fetch_data))
+        showall_btn=Button(search_frame,text="Refresh",width=8,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=lambda: self.refresh_animation(self.fetch_data))
         showall_btn.grid(row=0,column=4,padx=2)
-        Button(search_frame,text="Filter",font=("times new roman", 10, "bold"),bg="purple",fg="white",cursor='hand2',activebackground="#5d57b4",activeforeground='black',width=10,command=self.open_student_filter).grid(row=0,column=5,padx=2)
+        Button(search_frame,text="Filter",font=("times new roman", 10, "bold"),bg="purple",fg="white",cursor='hand2',activebackground="#5d57b4",activeforeground='black',width=8,command=self.open_student_filter).grid(row=0,column=5,padx=2)
+        
+        # EXPORT Button
+        Button(search_frame, text="Export", font=("times new roman", 10, "bold"), bg="orange", fg="white", cursor='hand2', activebackground="red", activeforeground='green', width=8, command=self.export_data).grid(row=0, column=6, padx=2)
 
         table_frame=Frame(right_frame,bd=2,bg='white',relief=RIDGE)
         table_frame.place(x=5,y=140,width=635,height=310)
@@ -459,6 +471,142 @@ class students:
         self.root.bind("<F5>", lambda e: self.fetch_data()) 
         self.root.after(60000, self.fetch_data)
 
+    def export_data(self):
+        rows = []
+        for item in self.student_table.get_children():
+            rows.append(self.student_table.item(item)['values'])
+
+        if not rows:
+            messagebox.showerror("No Data", "No data available to export", parent=self.root)
+            return
+
+        filetypes = [
+            ("CSV File", "*.csv"),
+            ("Excel File", "*.xlsx"),
+            ("Text File", "*.txt"),
+            ("JSON File", "*.json"),
+            ("PDF File", "*.pdf")
+        ]
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=filetypes,
+            title="Export Student Data",
+            parent=self.root
+        )
+
+        if not file_path:
+            return
+
+        try:
+            headers = ['Department', 'Course', 'Year', 'Semester', 'Student ID', 'Name', 'Division', 'Roll No', 'Gender', 'DOB', 'Email', 'Phone', 'Address', 'Teacher', 'Photo Status', 'Telegram ID']
+
+            # CSV Export
+            if file_path.endswith(".csv"):
+                with open(file_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(headers)
+                    writer.writerows(rows)
+
+            # Excel Export
+            elif file_path.endswith(".xlsx"):
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Student Data"
+                ws.append(headers)
+                for r in rows:
+                    ws.append(r)
+                wb.save(file_path)
+
+            # Text Export
+            elif file_path.endswith(".txt"):
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write("\t".join(headers) + "\n")
+                    for r in rows:
+                        f.write("\t".join(map(str, r)) + "\n")
+
+            # JSON Export
+            elif file_path.endswith(".json"):
+                 # Convert rows to dicts for JSON
+                data = [dict(zip(headers, r)) for r in rows]
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+
+            # PDF Export
+            elif file_path.endswith(".pdf"):
+                pdf = SimpleDocTemplate(
+                    file_path,
+                    pagesize=landscape(letter), # Use Landscape for wide table
+                    rightMargin=20,
+                    leftMargin=20,
+                    topMargin=20,
+                    bottomMargin=20
+                )
+
+                elements = []
+                styles = getSampleStyleSheet()
+
+                # Title
+                title_style = styles["Title"]
+                title_style.alignment = 1
+                title_style.textColor = colors.HexColor("#1f4bd8")
+                elements.append(Paragraph("Student Data Report", title_style))
+                elements.append(Paragraph("<br/>", styles["Normal"]))
+
+                # Prepare Table Data
+                table_data = [headers]
+                for r in rows:
+                     # Convert all items to string
+                    table_data.append([str(x) for x in r])
+
+                col_widths = [
+                    45, # Department
+                    35, # Course
+                    35, # Year
+                    35, # Semester
+                    35, # Student ID
+                    60, # Name
+                    30, # Division
+                    30, # Roll No
+                    40, # Gender
+                    50, # DOB
+                    130, # Email (Wider)
+                    50, # Phone
+                    50, # Address
+                    50, # Teacher
+                    40, # Photo Status
+                    40  # Telegram ID
+                ]
+                
+                table = Table(
+                    table_data,
+                    colWidths=col_widths
+                )
+
+                # Style
+                table.setStyle(TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f4bd8")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 6), # Small font for many columns
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.whitesmoke),
+                ]))
+
+                elements.append(table)
+                pdf.build(elements)
+
+            messagebox.showinfo(
+                "Export Successful",
+                f"Student data exported successfully!\n\n"
+                f"📁 File: {file_path}",
+                parent=self.root
+            )
+
+        except Exception as e:
+            messagebox.showerror("Export Error", str(e), parent=self.root)
+
     def add_data(self):
         email = self.var_email.get()
         if self.var_dep.get()=='Select Department' or self.var_std_name.get()=='' or self.va_std_id.get()=='' or self.var_course.get()=='Select Course' or self.var_year.get()=='Select Year' or self.var_semester.get()=='Select Semester' or self.var_div.get()=='Select Division' or self.var_gender.get()=='Select Gender' or self.var_roll.get()==''or self.var_email.get()=='' or self.var_dob.get()==''or self.var_phone.get()=='' or self.var_address.get()=='' or self.var_teacher.get()=='' or self.var_radio1.get()=='' or self.var_telegram_id.get()=='':
@@ -490,10 +638,10 @@ class students:
                 self.var_dob.get(),
                 self.var_email.get(),
                 self.var_phone.get(),
-                self.var_telegram_id.get(),   
                 self.var_address.get(),
                 self.var_teacher.get(),
-                self.var_radio1.get()
+                self.var_radio1.get(),
+                self.var_telegram_id.get()   
             ))
 
                 conn.commit()
@@ -578,6 +726,16 @@ class students:
         self.var_teacher.set(data[13])
         self.var_radio1.set(data[14])
         self.var_telegram_id.set(data[15])
+        
+        # Dynamic Button State Logic
+        photo_status = data[14] # "Yes" or "No" (or "yes"/"no")
+        
+        if photo_status.lower() == "yes":
+            self.take_photo_btn.config(state="disabled")
+            self.update_photo_btn.config(state="normal")
+        else:
+            self.take_photo_btn.config(state="disabled")
+            self.update_photo_btn.config(state="normal")
 
     def update_data(self):
         email = self.var_email.get()
@@ -808,7 +966,10 @@ class students:
         self.var_teacher.set('')
         self.var_radio1.set('')
         self.var_telegram_id.set("")
-
+    
+        # Reset Buttons
+        self.take_photo_btn.config(state="normal")
+        self.update_photo_btn.config(state="normal")
 
     def photo_sample(self):
         email = self.var_email.get()
@@ -925,6 +1086,121 @@ class students:
 
         except Exception as es:
             messagebox.showerror("Error", f"Photo samples failed to be Updated due to: {str(es)}", parent=self.root)
+
+    def fetch_table_data(self):
+        """Helper to fetch column headers and rows from the Treeview."""
+        headers = [self.student_table.heading(col)["text"] for col in self.student_table["columns"]]
+        rows = []
+        for item in self.student_table.get_children():
+            rows.append(self.student_table.item(item)["values"])
+        return headers, rows
+
+    def export_data_csv(self):
+        """Export current table data to CSV."""
+        headers, rows = self.fetch_table_data()
+        if not rows:
+            messagebox.showwarning("No Data", "No data to export", parent=self.root)
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+            title="Export to CSV",
+            parent=self.root
+        )
+        if not file_path:
+            return
+
+        try:
+            with open(file_path, mode="w", newline="", encoding="utf-8") as file:
+                writer = csv.writer(file)
+                writer.writerow(headers)
+                writer.writerows(rows)
+            messagebox.showinfo("Success", f"Data exported successfully to {os.path.basename(file_path)}", parent=self.root)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export CSV: {str(e)}", parent=self.root)
+
+    def export_data_json(self):
+        """Export current table data to JSON."""
+        headers, rows = self.fetch_table_data()
+        if not rows:
+            messagebox.showwarning("No Data", "No data to export", parent=self.root)
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            title="Export to JSON",
+            parent=self.root
+        )
+        if not file_path:
+            return
+
+        data_to_export = []
+        for row in rows:
+            row_dict = {headers[i]: row[i] for i in range(len(headers))}
+            data_to_export.append(row_dict)
+
+        try:
+            with open(file_path, mode="w", encoding="utf-8") as file:
+                json.dump(data_to_export, file, indent=4)
+            messagebox.showinfo("Success", f"Data exported successfully to {os.path.basename(file_path)}", parent=self.root)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export JSON: {str(e)}", parent=self.root)
+
+    def export_data_pdf(self):
+        """Export current table data to PDF using ReportLab."""
+        headers, rows = self.fetch_table_data()
+        if not rows:
+            messagebox.showwarning("No Data", "No data to export", parent=self.root)
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+            title="Export to PDF",
+            parent=self.root
+        )
+        if not file_path:
+            return
+
+        try:
+            doc = SimpleDocTemplate(file_path, pagesize=landscape(letter))
+            elements = []
+
+            # Add Title
+            styles = getSampleStyleSheet()
+            title_style = styles['Title']
+            title_style.textColor = colors.darkblue
+            title = Paragraph("Student Details", title_style)
+            elements.append(title)
+            elements.append(Spacer(1, 0.2 * inch))
+            
+            # Prepare data for table
+            table_data = [headers] + rows
+            
+            # Create Table
+            table = Table(table_data)
+            
+            # Add Style
+            style = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('FONTSIZE', (0, 0), (-1, -1), 8), # Reduce font size to fit
+            ])
+            table.setStyle(style)
+            
+            elements.append(table)
+            doc.build(elements)
+            
+            messagebox.showinfo("Success", f"Data exported successfully to {os.path.basename(file_path)}", parent=self.root)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export PDF: {str(e)}", parent=self.root)
 
     def back(self):
         self.root.destroy()

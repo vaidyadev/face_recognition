@@ -275,6 +275,7 @@ class attendance:
         self.var_atten_time = StringVar()
         self.var_atten_date = StringVar()
         self.var_atten_status = StringVar()
+        self.attendance_id = None # Store the database primary key for updates
         
         # Filter Variables
         self.filter_from_date = StringVar()
@@ -484,13 +485,14 @@ class attendance:
         scroll_x = ttk.Scrollbar(table_frame, orient=HORIZONTAL)
         scroll_y = ttk.Scrollbar(table_frame, orient=VERTICAL)
 
-        self.attendence_table = ttk.Treeview(table_frame, column=('id', 'name', 'roll', 'department', 'time', 'date', 'attendance'), xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
+        self.attendence_table = ttk.Treeview(table_frame, column=('db_id', 'id', 'name', 'roll', 'department', 'time', 'date', 'attendance'), xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
         
         scroll_x.pack(side=BOTTOM, fill=X)
         scroll_y.pack(side=RIGHT, fill=Y)
         scroll_x.config(command=self.attendence_table.xview)
         scroll_y.config(command=self.attendence_table.yview)
 
+        self.attendence_table.heading('db_id', text='DB ID')
         self.attendence_table.heading('id', text='ID')
         self.attendence_table.heading('name', text='Name')
         self.attendence_table.heading('roll', text='Roll')
@@ -500,6 +502,7 @@ class attendance:
         self.attendence_table.heading('attendance', text='Status')
 
         self.attendence_table['show'] = 'headings'
+        self.attendence_table.column('db_id', width=0, stretch=NO)
         self.attendence_table.column('id', width=100)
         self.attendence_table.column('name', width=100)
         self.attendence_table.column('roll', width=100)
@@ -526,7 +529,8 @@ class attendance:
     def export_data(self):
         rows = []
         for item in self.attendence_table.get_children():
-            rows.append(self.attendence_table.item(item)['values'])
+            # Slice [1:] to skip the hidden 'db_id' column
+            rows.append(self.attendence_table.item(item)['values'][1:])
 
         if not rows:
             messagebox.showerror("No Data", "No data available to export", parent=self.root)
@@ -654,7 +658,6 @@ class attendance:
         except Exception as e:
             messagebox.showerror("Export Error", str(e), parent=self.root)
 
-
     def open_time_picker(self):
         def set_time(selected_time):
             self.var_atten_time.set(selected_time)
@@ -728,7 +731,7 @@ class attendance:
     def fetch_data(self, rows):
         self.attendence_table.delete(*self.attendence_table.get_children())
         for i in rows:
-            display_data = (i[1], i[2], i[3], i[4], i[5], i[6], i[7]) 
+            display_data = (i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7]) 
             self.attendence_table.insert('', END, values=display_data)
 
     def auto_load_data(self):
@@ -784,6 +787,11 @@ class attendance:
             messagebox.showerror("Error", "Student ID is required", parent=self.root)
             return
 
+        # Check if a record was actually selected for update
+        if self.attendance_id is None:
+             messagebox.showerror("Error", "Please select a record from the table to update", parent=self.root)
+             return
+
         confirm = messagebox.askyesno(
             "Confirm Update",
             "Are you sure you want to update this attendance record?",
@@ -798,16 +806,17 @@ class attendance:
             my_cursor = conn.cursor()
             my_cursor.execute("""
                 UPDATE attendance 
-                SET Student_name=%s, Roll=%s, Dep=%s, Time=%s, Status=%s 
-                WHERE Student_id=%s AND Date=%s
+                SET Student_id=%s, Student_name=%s, Roll=%s, Dep=%s, Time=%s, Date=%s, Status=%s 
+                WHERE id=%s
             """, (
+                self.var_atten_id.get(),
                 self.var_atten_name.get(),
                 self.var_atten_roll.get(),
                 self.var_atten_dept.get(),
                 self.var_atten_time.get(),
+                self.var_atten_date.get(),
                 self.var_atten_status.get(),
-                self.var_atten_id.get(),
-                self.var_atten_date.get()
+                self.attendance_id
             ))
             conn.commit()
             conn.close()
@@ -819,8 +828,8 @@ class attendance:
             messagebox.showerror("Error", f"Error: {e}", parent=self.root)
 
     def delete_data(self):
-        if self.var_atten_id.get() == "":
-            messagebox.showerror("Error", "Student ID and Date required to delete", parent=self.root)
+        if self.attendance_id is None:
+            messagebox.showerror("Error", "Please select a record from the table to delete", parent=self.root)
             return
         
         try:
@@ -828,8 +837,7 @@ class attendance:
             if delete:
                 conn = self.get_db_connection()
                 my_cursor = conn.cursor()
-                my_cursor.execute("DELETE FROM attendance WHERE Student_id=%s AND Date=%s", 
-                                (self.var_atten_id.get(), self.var_atten_date.get()))
+                my_cursor.execute("DELETE FROM attendance WHERE id=%s", (self.attendance_id,))
                 conn.commit()
                 conn.close()
                 messagebox.showinfo("Success", "Deleted Successfully", parent=self.root)
@@ -846,6 +854,7 @@ class attendance:
         self.var_atten_time.set("")
         self.var_atten_date.set("")
         self.var_atten_status.set("Status")
+        self.attendance_id = None
         self.set_current_date_time()
 
     def get_cursor(self, event=None):
@@ -853,13 +862,14 @@ class attendance:
         content = self.attendence_table.item(cursor_row)
         rows = content['values']
         if rows:
-            self.var_atten_id.set(rows[0])
-            self.var_atten_name.set(rows[1])
-            self.var_atten_roll.set(rows[2])
-            self.var_atten_dept.set(rows[3])
-            self.var_atten_time.set(rows[4])
-            self.var_atten_date.set(rows[5])
-            self.var_atten_status.set(rows[6])
+            self.attendance_id = rows[0] # Capture the hidden DB ID
+            self.var_atten_id.set(rows[1])
+            self.var_atten_name.set(rows[2])
+            self.var_atten_roll.set(rows[3])
+            self.var_atten_dept.set(rows[4])
+            self.var_atten_time.set(rows[5])
+            self.var_atten_date.set(rows[6])
+            self.var_atten_status.set(rows[7])
 
     # ================= FILTERS, SORT & SEARCH =================
 

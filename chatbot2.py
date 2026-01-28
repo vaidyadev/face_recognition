@@ -40,7 +40,10 @@ class ChatBot:
             'save_settings': self.save_settings_callback,
             'show_help': self.show_help,
             'open_settings': self.open_settings_current,
-            'focus_search': self.focus_search
+            'show_help': self.show_help,
+            'open_settings': self.open_settings_current,
+            'focus_search': self.focus_search,
+            'toggle_search': self.toggle_search
         }
         
         # Initialize UI
@@ -61,21 +64,30 @@ class ChatBot:
         self.root.bind('<Control-e>', lambda e: self.export_history_dialog())
         self.root.bind('<Control-Shift-Delete>', lambda e: self.clear_all_history())
         self.root.bind('<Control-f>', lambda e: self.focus_search())
+        self.root.bind('<Control-w>', lambda e: self.ui.toggle_search_button())
         self.root.bind('<Control-comma>', lambda e: self.open_settings_current())
         
         self.history_file = "chat_history.json"
         
-        # Show Welcome Cards on Startup
-        self.ui.render_welcome_cards(self.handle_card_click)
         
         self.history_data = history.load_history(self.history_file)
         self.current_session = None
         self.session_messages = []
         self.filtered_sessions = []
         
+        # Configure Chat Styles (Moved before theme application)
+        self.ui.text.tag_configure("user_msg", justify='right', foreground="#333", spacing1=5, spacing3=5, font=("Segoe UI Emoji", 12))
+        self.ui.text.tag_configure("bot_label", justify='left', foreground="#6610f2", spacing1=10, spacing3=2, font=("Segoe UI Emoji", 12, "bold"))
+        self.ui.text.tag_configure("spinner", justify='left')
+
+        self.ui.text.tag_configure("spinner", justify='left')
+
         # Theme Initialization
         self.dark_mode_enabled = False # Logic state
         self.apply_theme(self.settings_manager.get("theme_mode", "System Default"))
+
+        # Show Welcome Cards on Startup (After Theme)
+        self.ui.render_welcome_cards(self.handle_card_click)
         
         # Initialize cache
         self.cache_file = "response_cache.json"
@@ -96,10 +108,7 @@ class ChatBot:
         
         self.attachments = []
         
-        # Configure Chat Styles
-        self.ui.text.tag_configure("user_msg", justify='right', foreground="#333", spacing1=5, spacing3=5, font=("Segoe UI Emoji", 12))
-        self.ui.text.tag_configure("bot_label", justify='left', foreground="#6610f2", spacing1=10, spacing3=2, font=("Segoe UI Emoji", 12, "bold"))
-        self.ui.text.tag_configure("spinner", justify='left')
+        self.search_enabled = False
         
         self.render_history()
         self.show_startup_tip()
@@ -127,6 +136,11 @@ class ChatBot:
         self.dark_mode_enabled = is_dark
         self.ui.toggle_dark_mode(is_dark)
 
+    def _reset_entry_style(self):
+        """Resets entry style based on current theme"""
+        color = 'white' if self.dark_mode_enabled else 'black'
+        self.ui.entry.config(fg=color)
+
     def save_settings_callback(self, new_settings):
         # Check if theme changed
         old_theme = self.settings_manager.get("theme_mode", "System Default")
@@ -150,20 +164,21 @@ class ChatBot:
             "• Ctrl + F : Search History | Ctrl + E : Export History\n"
             "• Ctrl + R : Read All | Ctrl + D : Dark Mode\n"
             "• Ctrl + H : Show Help | Ctrl + , : Settings\n"
+            "• Ctrl + Shift + Delete : Clear All History\n"
+            "• Ctrl + W : Search\n"
             "• Esc : Exit/Back"
         )
         messagebox.showinfo("Welcome to HelpBot!", message, parent=self.root)
 
         self.render_history()
         
-
     def handle_card_click(self, prompt):
         self.ui.entry.delete("1.0", END)
         self.ui.entry.insert("1.0", prompt)
-        self.ui.entry.config(fg='black')
+        self.ui.entry.insert("1.0", prompt)
+        self._reset_entry_style()
         self.ui.entry.focus_set()
 
-    
     def show_help(self):
         help_text = (
             "🤖 **Model Usage Instructions** 🤖\n\n"
@@ -177,6 +192,8 @@ class ChatBot:
             "• Ctrl + F : Search History | Ctrl + E : Export History\n"
             "• Ctrl + R : Read All | Ctrl + D : Dark Mode\n"
             "• Ctrl + H : Show Help | Ctrl + , : Settings\n"
+             "• Ctrl + Shift + Delete : Clear All History\n"
+            "• Ctrl + W : Search\n"
             "• Esc : Exit/Back"
         )
         messagebox.showinfo("Chatbot Help", help_text, parent=self.root)
@@ -206,12 +223,58 @@ class ChatBot:
         self.root.destroy()
 
     def rename_session(self, index):
+        self._show_rename_dialog(index)
+
+    def _show_rename_dialog(self, index):
         session = self.history_data[index]
-        new_title = simpledialog.askstring("Rename Chat", "Enter new chat title:", initialvalue=session["title"], parent=self.root)
-        if new_title:
-            session["title"] = new_title.strip()[:60]
-            history.save_history(self.history_file, self.history_data)
-            self.render_history()
+        current_title = session["title"]
+        
+        # Theme colors
+        is_dark = getattr(self.ui, 'is_dark', False)
+        bg_color = "#2d2d2d" if is_dark else "white"
+        fg_color = "white" if is_dark else "black"
+        entry_bg = "#404040" if is_dark else "white"
+        entry_fg = "white" if is_dark else "black"
+        btn_bg = "#4CAF50" # Green for save
+        cancel_bg = "#dc3545" # Red for cancel
+
+        # Dialog Window
+        dialog = Toplevel(self.root)
+        dialog.title("Rename Chat")
+        dialog.geometry("400x180")
+        dialog.wm_iconbitmap('assets/chat.ico')
+        dialog.config(bg=bg_color)
+        dialog.resizable(False, False)
+        
+        # Center dialog
+        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - 200
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - 90
+        dialog.geometry(f"+{x}+{y}")
+        
+        # UI Elements
+        Label(dialog, text="Enter new chat title:", font=("Arial", 11), bg=bg_color, fg=fg_color).pack(pady=(20, 10))
+        
+        entry = Entry(dialog, font=("Arial", 11), bg=entry_bg, fg=entry_fg, insertbackground=fg_color)
+        entry.pack(fill=X, padx=30, pady=5)
+        entry.insert(0, current_title)
+        entry.focus_set()
+        
+        btn_frame = Frame(dialog, bg=bg_color)
+        btn_frame.pack(pady=20)
+        
+        def save():
+            new_title = entry.get().strip()
+            if new_title:
+                session["title"] = new_title[:60]
+                history.save_history(self.history_file, self.history_data)
+                self.render_history()
+            dialog.destroy()
+            
+        Button(btn_frame, text="Save", bg=btn_bg, fg="white", font=("Arial", 10, "bold"), bd=0, padx=15, pady=5, cursor="hand2", command=save).pack(side=LEFT, padx=10)
+        Button(btn_frame, text="Cancel", bg=cancel_bg, fg="white", font=("Arial", 10), bd=0, padx=15, pady=5, cursor="hand2", command=dialog.destroy).pack(side=LEFT, padx=10)
+        
+        dialog.bind("<Return>", lambda e: save())
+        dialog.bind("<Escape>", lambda e: dialog.destroy())
 
     def new_chat(self):
         self.session_messages = []
@@ -219,7 +282,7 @@ class ChatBot:
         
         self.ui.entry.delete("1.0", END)
         # self.ui.entry.insert("1.0", self.ui.placeholder_text) # Placeholder removed
-        self.ui.entry.config(fg='black')
+        self._reset_entry_style()
 
         self.attachments = []
         self.ui.clear_attachments()
@@ -246,7 +309,8 @@ class ChatBot:
         
         # Create spinner label inside text widget
         # Using a Frame to center or style if needed, but Label is fine
-        self.chat_spinner_label = Label(self.ui.text, bg="white", image=self.ui.spinner_frames[0], bd=0)
+        spinner_bg = "#1e1e1e" if self.ui.is_dark else "white"
+        self.chat_spinner_label = Label(self.ui.text, bg=spinner_bg, image=self.ui.spinner_frames[0], bd=0)
         self.ui.text.window_create(END, window=self.chat_spinner_label)
         self.ui.text.insert(END, "\n")
         # Ensure spinner is left-aligned by removing user_msg tag if inherited
@@ -376,8 +440,8 @@ class ChatBot:
         self.ui.toggle_history_panel()
     
     def delete_history_entry(self, index):
-        # if not messagebox.askyesno("Delete", "Delete this chat?", parent=self.root):
-        #    return
+        if not messagebox.askyesno("Delete", "Delete this chat?", parent=self.root):
+           return
 
         session_to_delete = self.history_data[index]
         was_current = (self.current_session == session_to_delete)
@@ -398,7 +462,7 @@ class ChatBot:
             
             self.ui.entry.delete("1.0", END)
             # self.ui.entry.insert("1.0", self.ui.placeholder_text) 
-            self.ui.entry.config(fg='black')
+            self._reset_entry_style()
 
     def export_history_dialog(self, parent=None):
         target_parent = parent if parent else self.root
@@ -461,16 +525,22 @@ class ChatBot:
                 # Reset entry
                 self.ui.entry.delete("1.0", END)
                 # self.ui.entry.insert("1.0", self.ui.placeholder_text) # Removed
-                self.ui.entry.config(fg='black')
+                self._reset_entry_style()
 
     def render_history(self):
         for widget in self.ui.history_list_frame.winfo_children():
             widget.destroy()
 
+        # Determine colors based on current theme
+        is_dark = getattr(self.ui, 'is_dark', False)
+        bg_color = "#2d2d2d" if is_dark else "white"
+        fg_color = "white" if is_dark else "black"
+        hover_bg = "#3d3d3d" if is_dark else "#f0f0f0" # Optional hover color
+
         if not self.history_data:
             placeholder = Label(self.ui.history_list_frame,
                                 text="🕳️ No chat sessions yet.",
-                                bg='white', fg='gray',
+                                bg=bg_color, fg='gray',
                                 font=('Arial', 11, 'italic'),
                                 pady=10)
             placeholder.pack(anchor='center', pady=20)
@@ -478,17 +548,17 @@ class ChatBot:
 
         sessions = self.filtered_sessions if self.ui.search_var.get().strip() else self.history_data
         for index, session in enumerate(sessions):
-            frame = Frame(self.ui.history_list_frame, bg='white')
+            frame = Frame(self.ui.history_list_frame, bg=bg_color)
             frame.pack(fill=X, padx=5, pady=2)
 
             preview_text = f"{session['timestamp']} | {session['title'][:30]}..."
-            label = Label(frame, text=preview_text, anchor='w', bg='white', fg='black',
+            label = Label(frame, text=preview_text, anchor='w', bg=bg_color, fg=fg_color,
                         font=('arial', 9), justify=LEFT)
             label.pack(side=LEFT, fill=X, expand=True)
 
             label.bind("<Button-1>", lambda e, i=index: self.load_session(i))
 
-            menu_btn = Button(frame, text="⋯", font=("Arial", 10), bg='white', bd=0, cursor='hand2', command=lambda i=index: self.show_session_menu(i))
+            menu_btn = Button(frame, text="⋯", font=("Arial", 10), bg=bg_color, fg=fg_color, bd=0, cursor='hand2', command=lambda i=index: self.show_session_menu(i))
             menu_btn.pack(side=RIGHT, padx=3)
 
     def update_search_results(self):
@@ -502,7 +572,15 @@ class ChatBot:
         self.render_history()
 
     def show_session_menu(self, index):
-        menu = Menu(self.root, tearoff=0)
+        # Determine colors based on theme
+        is_dark = getattr(self.ui, 'is_dark', False)
+        bg_color = "#2d2d2d" if is_dark else "white"
+        fg_color = "white" if is_dark else "black"
+        active_bg = "#3d3d3d" if is_dark else "#e0e0e0"
+        active_fg = "white" if is_dark else "black"
+
+        menu = Menu(self.root, tearoff=0, bg=bg_color, fg=fg_color, 
+                   activebackground=active_bg, activeforeground=active_fg)
         menu.add_command(label="✏️ Rename", command=lambda: self.rename_session(index))
         menu.add_command(label="🗑️ Delete", command=lambda: self.delete_history_entry(index))
 
@@ -542,11 +620,23 @@ class ChatBot:
                 # Capture start index to ensure tag is applied correctly
                 btn_start = self.ui.text.index(END)
 
-                btn_frame = Frame(self.ui.text, bg="white")
+                # Theme-aware colors
+                is_dark = self.dark_mode_enabled
+                theme_bg = "#1e1e1e" if is_dark else "white"
+                theme_fg = "#e0e0e0" if is_dark else "black"
+                theme_active = "#2d2d2d" if is_dark else "#f0f0f0"
+
+                btn_frame = Frame(self.ui.text, bg=theme_bg)
                 copy_btn = Button(btn_frame, text="📋", font=("Segoe UI Emoji", 9), cursor="hand2",
-                                  bd=0, bg="#f0f0f0", activebackground="#e0e0e0")
+                                  bd=0, bg=theme_bg, fg=theme_fg, activebackground=theme_active, activeforeground=theme_fg)
                 copy_btn.config(command=lambda b=copy_btn, c=content: self.copy_to_clipboard(c, b))
                 copy_btn.pack(side=RIGHT, padx=5)
+                
+                # Speak User
+                speak_btn = Button(btn_frame, text="🔊", font=("Segoe UI Emoji", 9), cursor="hand2",
+                                  bd=0, bg=theme_bg, fg=theme_fg, activebackground=theme_active, activeforeground=theme_fg)
+                speak_btn.config(command=lambda b=speak_btn, c=content: self.toggle_speech(c, b))
+                speak_btn.pack(side=RIGHT, padx=5)
                 
                 self.ui.text.window_create(END, window=btn_frame)
                 self.ui.text.insert(END, "\n")
@@ -602,11 +692,24 @@ class ChatBot:
              self.copy_to_clipboard(user_text, btn)
              
         # Copy Button Frame (Below message, Right Aligned)
-        btn_frame = Frame(self.ui.text, bg="white")
+        # Theme-aware colors
+        is_dark = self.dark_mode_enabled
+        theme_bg = "#1e1e1e" if is_dark else "white"
+        theme_fg = "#e0e0e0" if is_dark else "black"
+        theme_active = "#2d2d2d" if is_dark else "#f0f0f0"
+
+        # Copy Button Frame (Below message, Right Aligned)
+        btn_frame = Frame(self.ui.text, bg=theme_bg)
         copy_btn = Button(btn_frame, text="📋", font=("Segoe UI Emoji", 9), cursor="hand2",
-                          bd=0, bg="#f0f0f0", activebackground="#e0e0e0")
+                          bd=0, bg=theme_bg, fg=theme_fg, activebackground=theme_active, activeforeground=theme_fg)
         copy_btn.config(command=lambda b=copy_btn: copy_user(b))
         copy_btn.pack(side=RIGHT, padx=5)
+        
+        # Speak User Button
+        speak_btn = Button(btn_frame, text="🔊", font=("Segoe UI Emoji", 9), cursor="hand2",
+                          bd=0, bg=theme_bg, fg=theme_fg, activebackground=theme_active, activeforeground=theme_fg)
+        speak_btn.config(command=lambda b=speak_btn: self.toggle_speech(user_text, b))
+        speak_btn.pack(side=RIGHT, padx=5)
         
         self.ui.text.window_create(END, window=btn_frame)
         self.ui.text.insert(END, "\n")
@@ -637,6 +740,9 @@ class ChatBot:
                 
                 # Default model
                 model_name = self.settings_manager.get("model", "tngtech/deepseek-r1t2-chimera:free")
+                
+                # Get Search State
+                search_enabled = self.ui.search_active
                 
                 # Auto-Switch Logic
                 has_image = any(os.path.splitext(f)[1].lower() in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico'] for f in current_attachments)
@@ -683,7 +789,8 @@ class ChatBot:
                      response = ai_chat.ask_gemini_chat(
                          self.gemini_chat_session, 
                          user_input, 
-                         attachments=current_attachments
+                         attachments=current_attachments,
+                         search_enabled=search_enabled
                      )
                 else:
                     response = ai_chat.ask_openai(
@@ -692,13 +799,15 @@ class ChatBot:
                         self.response_cache, 
                         self.cache_file, 
                         attachments=current_attachments, 
-                        model_name=model_name
+                        model_name=model_name,
+                        search_enabled=search_enabled
                     )
                 
                 # Schedule UI update on main thread
                 self.root.after(0, lambda: self.finish_send(response, user_text))
             except Exception as e:
-               self.root.after(0, lambda: self.handle_send_error(e))
+               error_msg = str(e)
+               self.root.after(0, lambda: self.handle_send_error(error_msg))
 
         threading.Thread(target=process).start()
 
@@ -707,7 +816,7 @@ class ChatBot:
         # Clear properly for Text widget with placeholder logic
         self.ui.entry.delete("1.0", END)
         # self.ui.entry.insert("1.0", self.ui.placeholder_text)
-        self.ui.entry.config(fg='black')
+        self._reset_entry_style()
         
         # Render response - no next step needed here for simple send, 
         # but we can pass cleanup/logging as callback if needed.
@@ -841,17 +950,21 @@ class ChatBot:
                                 self.ui.text.insert(END, "\n")
                         self.ui.text.insert(END, "\n")
                 elif block_type == 'latex_block':
-                    ui_utils.render_latex_equation(self.ui.text, content)
+                    ui_utils.render_latex_equation(self.ui.text, content, is_dark=self.dark_mode_enabled)
                     self.ui.text.insert(END, '\n\n')
                 elif block_type == 'latex_inline':
-                    ui_utils.render_latex_equation(self.ui.text, content)
+                    ui_utils.render_latex_equation(self.ui.text, content, is_dark=self.dark_mode_enabled)
                 elif block_type == 'code':
                     lang, code = content
-                    self.syntax_highlighter.insert_code_snippet(lang, code)
+                    self.syntax_highlighter.insert_code_snippet(lang, code, is_dark=self.dark_mode_enabled)
                     self.ui.text.insert(END, '\n\n')
                 elif block_type == 'table':
                     # Passing language code directly now, ui_utils needs update
-                    ui_utils.insert_markdown_table(self.ui.text, content, self.root, self.settings_manager.get("language", "en"))
+                    # Use self.dark_mode_enabled logic (passed or read?)
+                    # Need to make sure self.dark_mode_enabled is accessible here. 
+                    # Yes, self is ChatBot instance.
+                    ui_utils.insert_markdown_table(self.ui.text, content, self.root, \
+                        self.settings_manager.get("language", "en"), is_dark=self.dark_mode_enabled)
                     self.ui.text.insert(END, '\n\n')
 
             self.ui.text.config(state='disabled')
@@ -863,18 +976,25 @@ class ChatBot:
                 self.ui.text.config(state='normal')
                                 
                 # Create a frame to hold buttons to keep them together
-                btn_frame = Frame(self.ui.text, bg="white")
+                # Theme-aware colors
+                is_dark = self.dark_mode_enabled
+                theme_bg = "#1e1e1e" if is_dark else "white"
+                theme_fg = "#e0e0e0" if is_dark else "black"
+                theme_active = "#2d2d2d" if is_dark else "#f0f0f0"
+
+                # Create a frame to hold buttons to keep them together
+                btn_frame = Frame(self.ui.text, bg=theme_bg)
                 
                 # Copy Button
                 copy_btn = Button(btn_frame, text="📋", font=("Segoe UI Emoji", 10), cursor="hand2",
-                                  bd=0, bg="white", activebackground="#f0f0f0", 
+                                  bd=0, bg=theme_bg, fg=theme_fg, activebackground=theme_active, activeforeground=theme_fg,
                                   command=lambda: self.copy_to_clipboard(response)) # Will fail because missing arg usage below needs update
                 copy_btn.config(command=lambda b=copy_btn: self.copy_to_clipboard(response, b)) # Correct usage
                 copy_btn.pack(side=LEFT, padx=5)
                 
                 # Speak Button
                 speak_btn = Button(btn_frame, text="🔊", font=("Segoe UI Emoji", 10), cursor="hand2",
-                                  bd=0, bg="white", activebackground="#f0f0f0")
+                                  bd=0, bg=theme_bg, fg=theme_fg, activebackground=theme_active, activeforeground=theme_fg)
                 speak_btn.config(command=lambda b=speak_btn: self.toggle_speech(response, b))
                 speak_btn.pack(side=LEFT, padx=5)
                 
@@ -892,8 +1012,8 @@ class ChatBot:
         self.ui.text.config(state='normal')
         # Clear input box
         self.ui.entry.delete("1.0", END)
-        self.ui.entry.insert("1.0", self.ui.placeholder_text)
-        self.ui.entry.config(fg='grey')
+        # self.ui.entry.insert("1.0", self.ui.placeholder_text) # Placeholder removed
+        # self.ui.entry.config(fg='grey') # Placeholder logic removed
         
         self.ui.text.delete(1.0, END)
         self.ui.text.config(state='disabled')
@@ -927,32 +1047,34 @@ class ChatBot:
         
     def add_attachment(self):
         file_types = [
-            ("Supported Files", "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.ico;*.pdf;*.txt;*.docx;*.json;*.py"),
+            ("Supported Files", "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.ico;*.pdf;*.txt;*.py;*.mp3;*.wav;*.aac;*.flac;*.ogg;*.mp4;*.mpeg;*.mov;*.avi;*.flv;*.mpg;*.webm;*.wmv;*.3gpp;*.js;*.html;*.c;*.cpp;*.css;*.java"),
             ("Images", "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.ico"),
-            ("Documents", "*.pdf;*.txt;*.docx;*.json;*.py")
+            ("Documents", "*.pdf;*.txt;*.py;*.js;*.html;*.c;*.cpp;*.css;*.java"),
+            ("Audio", "*.mp3;*.wav;*.aac;*.flac;*.ogg"),
+            ("Video", "*.mp4;*.mpeg;*.mov;*.avi;*.flv;*.mpg;*.webm;*.wmv;*.3gpp")
         ]
         
         files = filedialog.askopenfilenames(
             initialdir=os.getcwd(), 
-            title="Select Attachments (No Video/Audio)", 
+            title="Select Attachments", 
             filetypes=file_types, 
             parent=self.root
         )
         
-        excluded_exts = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v', '.mp3', '.wav', '.ogg']
+        excluded_exts = ['.json', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.csv']
         
         for file_path in files:
             # Check for excluded extensions
             ext = os.path.splitext(file_path)[1].lower()
             if ext in excluded_exts:
-                messagebox.showwarning("Invalid File", f"Video and Audio files are not allowed: {os.path.basename(file_path)}", parent=self.root)
+                messagebox.showwarning("Invalid File", f"The following file type is not allowed: {ext}\nFile: {os.path.basename(file_path)}", parent=self.root)
                 continue
             
-            # Check file size (1 MB limit)
+            # Check file size (5 MB limit)
             try:
                 file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-                if file_size_mb > 1:
-                    messagebox.showwarning("File Too Large", f"File size exceeds 1MB limit:\n{os.path.basename(file_path)} ({file_size_mb:.2f} MB)", parent=self.root)
+                if file_size_mb > 5:
+                    messagebox.showwarning("File Too Large", f"File size exceeds 5MB limit:\n{os.path.basename(file_path)} ({file_size_mb:.2f} MB)", parent=self.root)
                     continue
             except OSError:
                 continue
@@ -965,6 +1087,15 @@ class ChatBot:
     def remove_attachment(self, file_path):
         if file_path in self.attachments:
             self.attachments.remove(file_path)
+            # print(f"Removed attachment: {file_path}")
+
+    def toggle_search(self):
+        self.search_enabled = not self.search_enabled
+        self.ui.toggle_search_btn_state(self.search_enabled)
+        
+        status = "Enabled" if self.search_enabled else "Disabled"
+        # Optional: Toast notification or just rely on button color
+        # messagebox.showinfo("Web Search", f"Web Search is now {status}")
 
 if __name__ == '__main__':
     root = Tk()

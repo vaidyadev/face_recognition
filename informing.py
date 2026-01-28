@@ -78,11 +78,9 @@ class Inform:
                     command=self.telegram)
         b3_1.place(x=930, y=460, width=400, height=60)
 
-
-
-
    def back(self):
         self.root.destroy()
+  
    def update_time(self):
         current_time = strftime('%I:%M:%S %p')
         self.time_lbl.config(text=current_time)
@@ -91,12 +89,14 @@ class Inform:
    def email(self):
        self.new_window=Toplevel(self.root)
        self.app=emailsender(self.new_window)
+
    def whatsapp(self):
        self.new_window=Toplevel(self.root)
        self.app=msgsender(self.new_window)
+   
    def telegram(self):
     self.new_window = Toplevel(self.root)
-    self.app = TelegramSender(self.new_window)
+    self.app = TelegramBotSender(self.new_window)
 
        
 
