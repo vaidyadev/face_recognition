@@ -13,15 +13,18 @@ from google import genai
 from google.genai import types
 from .database import load_attendance_data
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Initialize Clients
 # OpenRouter Client
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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",
+    api_key=os.getenv("OPENAI_API_KEY"),
 )
 
 # Google GenAI Client
-google_client = genai.Client(api_key='AIzaSyDkmTUS7YoGTj1sukc9pwSAUhdeK--ePz8')
+google_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 def load_cache(cache_file):
     if os.path.exists(cache_file):
