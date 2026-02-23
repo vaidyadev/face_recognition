@@ -2,7 +2,11 @@ import os
 import json
 import base64
 import time
+import re
+import urllib.request
 from datetime import datetime
+from utils import resource_path
+import openai
 from openai import OpenAI
 import PIL.Image
 from google import genai
@@ -13,11 +17,11 @@ from .database import load_attendance_data
 # OpenRouter Client
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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",
+    api_key="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",
 )
 
 # Google GenAI Client
-google_client = genai.Client(api_key='AIzaSyBEsvNHLy3Sv3r66sF3wakdPAM_uDkDD48')
+google_client = genai.Client(api_key='AIzaSyDkmTUS7YoGTj1sukc9pwSAUhdeK--ePz8')
 
 def load_cache(cache_file):
     if os.path.exists(cache_file):
@@ -38,14 +42,14 @@ def save_cache(cache_file, response_cache):
 
 def load_faq_context():
     try:
-        with open("faq.txt", "r", encoding="utf-8") as f:
+        with open(resource_path("faq.txt"), "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
         return "FAQ file not found."
 
-def handle_multimodal_gemini(prompt, attachments):
+def handle_multimodal_gemini(prompt, attachments, search_enabled=False, reasoning_enabled=True, thinking_budget=1024):
     try:
-        print(f"DEBUG: Using Model -> gemini-2.5-flash-lite (Multimodal) for {len(attachments)} attachments")
+        print(f"DEBUG: Using Model -> gemini-2.5-flash (Multimodal) for {len(attachments) if attachments else 0} attachments")
         contents = []
         
         # Add Prompt first or last? contents list order matters.
@@ -96,25 +100,89 @@ def handle_multimodal_gemini(prompt, attachments):
         
         contents.append(prompt)
         
+        config_kwargs = {}
+        if search_enabled:
+             print("DEBUG: Enabling Google Search Tool")
+             grounding_tool = types.Tool(google_search=types.GoogleSearch())
+             config_kwargs["tools"] = [grounding_tool]
+             
+        if reasoning_enabled:
+             print("DEBUG: Enabling Gemini Thinking")
+             config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=thinking_budget, include_thoughts=True)
+        else:
+             config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+             
+        config = types.GenerateContentConfig(**config_kwargs) if config_kwargs else None
+
         response = google_client.models.generate_content(
-            model='gemini-2.5-flash-lite-preview-09-2025', 
-            contents=contents
+            model='gemini-2.5-flash', 
+            contents=contents,
+            config=config
         )
-        return response.text
+        
+        thoughts = []
+        if reasoning_enabled and hasattr(response, 'candidates') and response.candidates:
+            for part in response.candidates[0].content.parts:
+                if getattr(part, 'thought', False):
+                    thoughts.append(part.text)
+        
+        final_text = response.text
+        if thoughts:
+            reasoning_text = "\n\n".join(thoughts)
+            final_text = f"🧠 **Reasoning**:\n{reasoning_text}\n\n---\n\n{final_text}"
+            
+        return final_text
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg or "ResourceExhausted" in error_msg:
              return "⚠️ **Gemini Error**: Free tier limit reached (429). Please wait a while or switch models."
         return f"Gemini Error: {error_msg}"
 
-def handle_image_generation(prompt, attachments=None):
+def handle_image_generation(prompt, attachments=None, session_messages=None):
     try:
         print("DEBUG: Using Model -> bytedance-seed/seedream-4.5 (Image Generation)")
         
         messages = []
+        
+        # Add context from the last 3 turns
+        if session_messages:
+             for msg in session_messages[-3:]:
+                  role = msg.get("role", "user")
+                  content_str = msg.get("content", "")
+                  
+                  # Try to extract previously generated image URLs from assistant messages
+                  # Format from earlier: [IMAGE_GENERATED]: path
+                  # But OpenRouter Seedream uses image_urls in messages
+                  msg_content = []
+                  
+                  # We'll pass text content
+                  msg_content.append({"type": "text", "text": content_str})
+                  
+                  # Check if we have an image path in the content string (our local format)
+                  if role == "assistant" and "[IMAGE_GENERATED]:" in content_str:
+                       image_path = content_str.replace("[IMAGE_GENERATED]:", "").strip()
+                       if os.path.exists(image_path):
+                            ext = os.path.splitext(image_path)[1].lower()
+                            try:
+                                 with open(image_path, "rb") as image_file:
+                                      base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+                                      msg_content.append({
+                                          "type": "image_url",
+                                          "image_url": {
+                                              "url": f"data:image/{ext[1:]};base64,{base64_image}"
+                                          }
+                                      })
+                            except Exception as e:
+                                 print(f"Error encoding history image {image_path}: {e}")
+                                 
+                  messages.append({
+                      "role": role,
+                      "content": msg_content
+                  })
+                  
         user_content = []
         
-        # Add text prompt
+        # Add current text prompt
         user_content.append({"type": "text", "text": prompt})
         
         # Add image attachments if any (for editing/variation)
@@ -144,32 +212,62 @@ def handle_image_generation(prompt, attachments=None):
         response = client.chat.completions.create(
             model="bytedance-seed/seedream-4.5",
             messages=messages,
-            extra_body={"modalities": ["image", "text"]} 
+            extra_body={"modalities": ["image"]}
         )
         
         message = response.choices[0].message
+        content = message.content or ""
         
+        image_urls = []
+        
+        # Check explicit images attribute (non-standard)
+        if hasattr(message, 'images') and message.images:
+             for img in message.images:
+                 image_urls.append(img["image_url"]["url"])
+        
+        # Check content for markdown images if no explicit images
+        if not image_urls:
+             # Markdown image syntax: ![alt](url)
+             markdown_urls = re.findall(r'!\[.*?\]\((https?://[^\)]+)\)', content)
+             image_urls.extend(markdown_urls)
+
         saved_paths = []
-        if message.images:
+        if image_urls:
             downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
             os.makedirs(downloads_path, exist_ok=True)
             
-            for idx, image in enumerate(message.images):
-                data_url = image["image_url"]["url"]
-                header, encoded = data_url.split(",", 1)
-                image_bytes = base64.b64decode(encoded)
-                
-                filename = f"gen_img_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{idx}.png"
-                file_path = os.path.join(downloads_path, filename)
-                
-                with open(file_path, "wb") as f:
-                    f.write(image_bytes)
-                saved_paths.append(file_path)
-            
-            return f"[IMAGE_GENERATED]: {saved_paths[0]}"
-        else:
-             # Fallback if it returned text
-             return message.content or "No image generated."
+            for idx, url in enumerate(image_urls):
+                try:
+                    if url.startswith("data:image"):
+                        header, encoded = url.split(",", 1)
+                        image_bytes = base64.b64decode(encoded)
+                        ext = header.split(";")[0].split("/")[-1]
+                    else:
+                        # URL download using urllib
+                        with urllib.request.urlopen(url) as resp:
+                            if resp.status == 200:
+                                image_bytes = resp.read()
+                                ext = "png" # Default fallback
+                                # Try to guess extension from url
+                                if url.lower().endswith('.jpg') or url.lower().endswith('.jpeg'): ext = 'jpg'
+                                elif url.lower().endswith('.gif'): ext = 'gif'
+                                elif url.lower().endswith('.webp'): ext = 'webp'
+                            else:
+                                continue
+
+                    filename = f"gen_img_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{idx}.{ext}"
+                    file_path = os.path.join(downloads_path, filename)
+                    
+                    with open(file_path, "wb") as f:
+                        f.write(image_bytes)
+                    saved_paths.append(file_path)
+                except Exception as e:
+                    print(f"Error saving image {url}: {e}")
+
+            if saved_paths:
+                return f"[IMAGE_GENERATED]: {saved_paths[0]}"
+        
+        return content or "No image generated."
              
     except openai.APIStatusError as e:
         if e.status_code == 402:
@@ -178,7 +276,7 @@ def handle_image_generation(prompt, attachments=None):
     except Exception as e:
         return f"Image Gen Error: {str(e)}"
 
-def ask_openai(prompt, session_messages, response_cache, cache_file, attachments=None, model_name=None, search_enabled=False):
+def ask_openai(prompt, session_messages, response_cache, cache_file, attachments=None, model_name=None, search_enabled=False, reasoning_enabled=True, thinking_budget=1024):
     try:
         lower_prompt = prompt.lower()
         
@@ -189,10 +287,10 @@ def ask_openai(prompt, session_messages, response_cache, cache_file, attachments
                  # but chatbot2 calls ask_gemini_chat for sticky sessions.
                  # If this fallback is hit, we should pass search_enabled if implemented in handle_multimodal_gemini too.
                  # For now, let's just pass it or not. handle_multimodal_gemini needs update if we want search there too.
-                 return handle_multimodal_gemini(prompt, attachments)
+                 return handle_multimodal_gemini(prompt, attachments, search_enabled=search_enabled, reasoning_enabled=reasoning_enabled, thinking_budget=thinking_budget)
 
         if model_name and 'seedream' in model_name.lower():
-             return handle_image_generation(prompt, attachments)
+             return handle_image_generation(prompt, attachments, session_messages=session_messages)
         
         
         current_context_messages = session_messages[:] # Copy
@@ -242,23 +340,34 @@ def ask_openai(prompt, session_messages, response_cache, cache_file, attachments
             return response_cache[prompt]
 
         # Use provided model name from settings or default
-        selected_model = model_name or "tngtech/deepseek-r1t2-chimera:free"
+        selected_model = model_name or "openai/gpt-oss-120b:free"
         
         if search_enabled:
-             if "deepseek" in selected_model.lower() and "online" not in selected_model.lower():
+             if ("deepseek" in selected_model.lower() or "openai" in selected_model.lower()) and "online" not in selected_model.lower():
                   selected_model = f"{selected_model}:online"
                   print(f"DEBUG: Search Enabled -> Switching to {selected_model}")
 
-        print(f"DEBUG: Using Model -> {selected_model}")
+        print(f"DEBUG: Using Model -> {selected_model} | Reasoning: {reasoning_enabled}")
         
+        # Prepare extra parameters
+        extra_body = {
+            "include_reasoning": reasoning_enabled
+        }
+
         # Make OpenAI API request
         completion = client.chat.completions.create(
             extra_headers={"X-Title": "HelpBot"},
             model=selected_model,
-            messages=messages
+            messages=messages,
+            extra_body=extra_body
         )
 
         response = completion.choices[0].message.content.strip()
+        
+        # Check for reasoning
+        if hasattr(completion.choices[0].message, 'reasoning') and completion.choices[0].message.reasoning:
+             reasoning_text = completion.choices[0].message.reasoning
+             response = f"🧠 **Reasoning**:\n{reasoning_text}\n\n---\n\n{response}"
 
         # --- Long Response Caching ---
         word_count = len(response.split())
@@ -279,6 +388,15 @@ def ask_openai(prompt, session_messages, response_cache, cache_file, attachments
     except openai.APIStatusError as e:
         if e.status_code == 402:
              return "⚠️ **OpenRouter Error**: Insufficient credits or payment required (402)."
+        if e.status_code == 404 and "data policy" in str(e):
+             return (
+                 "⚠️ **OpenRouter Privacy Settings Error**:\n"
+                 "The free model `openai/gpt-oss-120b` requires data sharing to be enabled.\n\n"
+                 "**To fix this:**\n"
+                 "1. Go to [OpenRouter Privacy Settings](https://openrouter.ai/settings/privacy)\n"
+                 "2. Enable **'Allow use of your usage data'**.\n"
+                 "3. Try your request again."
+             )
         print(e)
         return f"OpenRouter status error: {str(e)}"
     except Exception as e:
@@ -343,7 +461,7 @@ def create_gemini_chat(history=None):
     try:
         # Create a new chat session
         chat = google_client.chats.create(
-            model='gemini-2.5-flash-lite-preview-09-2025',
+            model='gemini-2.5-flash',
             history=history if history else []
         ) 
         return chat
@@ -351,9 +469,9 @@ def create_gemini_chat(history=None):
         print(f"Error creating Gemini chat: {e}")
         return None
 
-def ask_gemini_chat(chat_session, prompt, attachments=None, search_enabled=False):
+def ask_gemini_chat(chat_session, prompt, attachments=None, search_enabled=False, reasoning_enabled=True, thinking_budget=1024):
     try:
-        print(f"DEBUG: Using Model -> gemini-2.5-flash-lite(Sticky Session) | Search: {search_enabled}")
+        print(f"DEBUG: Using Model -> gemini-2.5-flash (Sticky Session) | Search: {search_enabled} | Reasoning: {reasoning_enabled}")
         contents = []
         
         # Add attachments to contents
@@ -398,18 +516,36 @@ def ask_gemini_chat(chat_session, prompt, attachments=None, search_enabled=False
         # Add prompt text
         contents.append(prompt)
         
-        config = None
+        config_kwargs = {}
         if search_enabled:
              print("DEBUG: Enabling Google Search Tool")
              grounding_tool = types.Tool(
                 google_search=types.GoogleSearch()
              )
-             config = types.GenerateContentConfig(
-                tools=[grounding_tool]
-             )
+             config_kwargs["tools"] = [grounding_tool]
+             
+        if reasoning_enabled:
+             print("DEBUG: Enabling Gemini Thinking")
+             config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=thinking_budget, include_thoughts=True)
+        else:
+             config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+             
+        config = types.GenerateContentConfig(**config_kwargs) if config_kwargs else None
         
         response = chat_session.send_message(contents, config=config)
-        return response.text
+        
+        thoughts = []
+        if reasoning_enabled and hasattr(response, 'candidates') and response.candidates:
+            for part in response.candidates[0].content.parts:
+                if getattr(part, 'thought', False):
+                    thoughts.append(part.text)
+        
+        final_text = response.text
+        if thoughts:
+            reasoning_text = "\n\n".join(thoughts)
+            final_text = f"🧠 **Reasoning**:\n{reasoning_text}\n\n---\n\n{final_text}"
+            
+        return final_text
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg or "ResourceExhausted" in error_msg:

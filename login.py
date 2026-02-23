@@ -3,29 +3,47 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 from tkinter import messagebox
 from register import register
-import mysql.connector
+from config import get_db_connection
 import smtplib
 import random
 import re
 from email.message import EmailMessage
+import threading
+import sys
 from tooltip import ToolTip
+from utils import resource_path
+from loading import LoadingSplash
 
 class login_window:
 
-    
+    def preload_main_app(self):
+        """
+        Preloads the main application in the background to improve perceived performance.
+        The heavy imports (torch, cv2, etc.) happen effectively when 'import main' is executed.
+        """
+        try:
+            import main
+            print("Main application preloaded successfully in background.")
+        except Exception as e:
+            print(f"Background preload failed (non-critical): {e}")
+
     def __init__(self, root):
+        # Start preloading main module immediately in a background thread
+        threading.Thread(target=self.preload_main_app, daemon=True).start()
+
         self.root = root
         self.root.geometry("1360x680+0+0")
         self.root.title("Face Recognition System")
-        self.root.resizable(False, False)
-        self.root.wm_iconbitmap('college_images\\bg1.ico')
+        self.root.resizable(True, True)  # Enable resizing
+        self.root.minsize(1024, 600)     # Match main.py minimum size
+        self.root.wm_iconbitmap(resource_path('college_images\\bg1.ico'))
 
         ##############variables################################
         self.var_email = StringVar()
         self.var_pass = StringVar()
         self.remember_var = IntVar()
         try:
-            with open('remember.txt', 'r') as f:
+            with open(resource_path('remember.txt'), 'r') as f:
                 data = f.read().strip()
                 if data:
                     email, password = data.split(',')
@@ -35,12 +53,17 @@ class login_window:
         except FileNotFoundError:
             pass
 
-        # Background image
-        img3 = Image.open("college_images\\u.jpg")
-        img3 = img3.resize((1360, 680), Image.Resampling.LANCZOS)
-        self.photoimg3 = ImageTk.PhotoImage(img3)
-        bg_img = Label(self.root, image=self.photoimg3)
-        bg_img.place(x=0, y=0, width=1360, height=680)
+        # Background image setup
+        self.bg_image_original = Image.open(resource_path("college_images\\u.jpg"))
+        self.bg_photo = ImageTk.PhotoImage(self.bg_image_original.resize((1360, 680), Image.Resampling.LANCZOS))
+        
+        self.bg_label = Label(self.root, image=self.bg_photo)
+        self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+        # Debounce timer for resizing
+        self.resize_timer = None
+        # Bind resize event
+        self.root.bind("<Configure>", self.on_resize)
 
         self.login_attempts = 0
         self.locked_out = False
@@ -48,9 +71,9 @@ class login_window:
 
         # Login frame
         frame = Frame(self.root, bg='black')
-        frame.place(x=500, y=150, width=340, height=450)
+        frame.place(relx=0.5, rely=0.5, anchor=CENTER, width=340, height=450)
 
-        img = Image.open("college_images\\LoginIconAppl.png")
+        img = Image.open(resource_path("college_images\\LoginIconAppl.png"))
         img = img.resize((100, 100), Image.Resampling.LANCZOS)
         self.photoimg = ImageTk.PhotoImage(img)
         label_img = Label(frame, image=self.photoimg, bg='black', borderwidth=0)
@@ -79,19 +102,19 @@ class login_window:
         remember_me.place(x=40, y=290)
 
         # Toggle show/hide icons for login password field
-        self.show_icon2 = ImageTk.PhotoImage(Image.open("college_images/pass_show.png").resize((25, 29), Image.Resampling.LANCZOS))
-        self.hide_icon2 = ImageTk.PhotoImage(Image.open("college_images/pass_hide.png").resize((25, 29), Image.Resampling.LANCZOS))
+        self.show_icon2 = ImageTk.PhotoImage(Image.open(resource_path("college_images/pass_show.png")).resize((25, 29), Image.Resampling.LANCZOS))
+        self.hide_icon2 = ImageTk.PhotoImage(Image.open(resource_path("college_images/pass_hide.png")).resize((25, 29), Image.Resampling.LANCZOS))
         self.show_hide_btn2 = Button(frame, image=self.show_icon2, command=self.toggle_login_password, bg='black', bd=0, activebackground='black', cursor='hand2')
         self.show_hide_btn2.place(x=310, y=250, height=29)
         self.login_password_visible = False
 
         ####################Icon Images######################################
-        img1 = Image.open("college_images\\LoginIconAppl.png")
+        img1 = Image.open(resource_path("college_images\\LoginIconAppl.png"))
         img1 = img1.resize((25, 25), Image.Resampling.LANCZOS)
         self.photoimg1 = ImageTk.PhotoImage(img1)
         label_img1 = Label(frame, image=self.photoimg1, bg='black', borderwidth=0)
         label_img1.place(x=45, y=153, width=25, height=25)
-        img2 = Image.open("college_images\\lock-512.png")
+        img2 = Image.open(resource_path("college_images\\lock-512.png"))
         img2 = img2.resize((25, 25), Image.Resampling.LANCZOS)
         self.photoimg2 = ImageTk.PhotoImage(img2)
         label_img2 = Label(frame, image=self.photoimg2, bg='black', borderwidth=0)
@@ -113,7 +136,27 @@ class login_window:
         self.root.bind("<Control-r>", lambda e: self.register_window())
         self.root.bind("<Control-f>", lambda e: self.forgot_password())
         # Show shortcuts info on startup
-        # self.root.after(500, self.show_shortcuts_info)
+        self.root.after(500, self.show_shortcuts_info)
+
+
+    def on_resize(self, event):
+        """Variable delay to prevent lag while dragging, same as main.py"""
+        if event.widget == self.root:
+            if self.resize_timer:
+                self.root.after_cancel(self.resize_timer)
+            self.resize_timer = self.root.after(100, self.update_background)
+
+    def update_background(self):
+        """Resizes background image to fit current window size"""
+        new_width = self.root.winfo_width()
+        new_height = self.root.winfo_height()
+        
+        # Avoid resizing if window is too small (startup glitches)
+        if new_width < 100 or new_height < 100: return
+
+        image = self.bg_image_original.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        self.bg_photo = ImageTk.PhotoImage(image)
+        self.bg_label.config(image=self.bg_photo)
 
     def register_window(self):
         self.root.destroy()  # Close login window
@@ -129,7 +172,7 @@ class login_window:
         if self.txt.get() == '' or self.passw.get() == '':
             messagebox.showerror('Error', 'All fields are required!')
         else:
-            conn = mysql.connector.connect(host='localhost',port="3307", username='root', password='1582', database='face_recognizer')
+            conn = get_db_connection()
             my_cursor = conn.cursor()
             my_cursor.execute('select * from register where email=%s and password=%s', (
                 self.var_email.get(),
@@ -147,21 +190,88 @@ class login_window:
                 # Success: Reset attempts and send a login notification email
                 self.login_attempts = 0
                 full_name = f"{row[0]} {row[1]}"
-                self.send_login_email(row[3], full_name)
+                
                 if self.remember_var.get() == 1:
-                    with open('remember.txt', 'w') as f:
+                    with open(resource_path('remember.txt'), 'w') as f:
                         f.write(f"{self.var_email.get()},{self.var_pass.get()}")
                 else:
-                    with open('remember.txt', 'w') as f:
+                    with open(resource_path('remember.txt'), 'w') as f:
                         f.write("")  # Clear if not checked
-                from main import face_recog
-                self.root.destroy()
-                root = Tk()
-                main_app = face_recog(root)
-                root.mainloop()
+
+                # SHOW LOADING SPLASH BEFORE DESTROYING WINDOW
+                self.loading_splash = LoadingSplash(self.root, message="Authenticating...")
+                self.root.update_idletasks() # Force UI update immediately so 'Authenticating...' renders
+                self.loading_splash.update_message("Sending Login Email...")
+                
+                # Disable login button to prevent multiple clicks
+                for widget in self.root.winfo_children():
+                    if isinstance(widget, Frame):
+                        for w in widget.winfo_children():
+                            if isinstance(w, Button) and w.cget("text") == "Login":
+                                w.config(state=DISABLED)
+
+                # Run email sending and heavy imports sequentially in background thread
+                threading.Thread(target=self.load_main_app_thread, args=(row[3], full_name), daemon=True).start()
 
             conn.commit()
             conn.close()
+
+    def load_main_app_thread(self, to_email, name):
+        try:
+            # 1. Send Login Email
+            email_success = self.send_login_email(to_email, name)
+            
+            # 2. Show Messagebox on main thread
+            if email_success:
+                # Use wait_window or simple blocking call on main thread by using an event/after?
+                # Using root.after to safely show message box from UI thread, blocking logic using a flag is complex.
+                # Simplest is scheduling the message box, then scheduling the import thread again.
+                self.root.after(0, self.show_email_success_and_continue)
+            else:
+                 self.root.after(0, self.show_email_fail_and_continue)
+            
+        except Exception as e:
+            print(f"Error in background process: {e}")
+            if hasattr(self, 'loading_splash'):
+                self.root.after(0, self.loading_splash.destroy)
+
+    def show_email_success_and_continue(self):
+         if hasattr(self, 'loading_splash') and self.loading_splash.window.winfo_exists():
+             parent_win = self.loading_splash.window
+         else:
+             parent_win = self.root
+         messagebox.showinfo('Success', 'Login email has been sent to your email.', parent=parent_win, icon='info')
+         self.continue_loading_main_app()
+
+    def show_email_fail_and_continue(self):
+         self.continue_loading_main_app()
+
+    def continue_loading_main_app(self):
+        # 3. Update splash message
+        if hasattr(self, 'loading_splash'):
+             self.loading_splash.update_message("Loading Face Recognition Models...")
+             self.loading_splash.window.update_idletasks() # Force UI to update text immediately
+        
+        # 4. Load models in background again
+        threading.Thread(target=self._do_import_and_transition, daemon=True).start()
+
+    def _do_import_and_transition(self):
+        try:
+            from main import face_recog
+            self.root.after(0, self.transition_to_main, face_recog)
+        except Exception as e:
+            print(f"Error loading main app: {e}")
+            if hasattr(self, 'loading_splash'):
+                self.root.after(0, self.loading_splash.destroy)
+
+
+    def transition_to_main(self, face_recog_class):
+        if hasattr(self, 'loading_splash'):
+            self.loading_splash.destroy()
+        self.root.destroy()
+        root = Tk()
+        main_app = face_recog_class(root)
+        root.mainloop()
 
     def toggle_login_password(self):
         if self.login_password_visible:
@@ -176,7 +286,7 @@ class login_window:
     def send_login_email(self, to_email, name):
         # Re-use credentials from credentials.txt
         try:
-            with open('credentials.txt') as f1:
+            with open(resource_path('credentials.txt')) as f1:
                 for i in f1:
                     cr = i.strip().split(',')
             msg = EmailMessage()
@@ -201,10 +311,10 @@ class login_window:
             server.login(cr[0], cr[1])
             server.send_message(msg)
             server.quit()
-            messagebox.showinfo('Success', 'Login email has been sent to your email.') 
-            # Commented out to avoid interrupting user flow
+            return True
         except Exception as e:
-            pass # Fail silently for login notification if email fails
+            print(f"Failed to send email: {e}")
+            return False
 
     def lock_login(self):
         self.locked_out = True
@@ -254,9 +364,7 @@ class login_window:
             messagebox.showerror('Error', 'Please enter the email address to reset password')
             return
 
-        conn = mysql.connector.connect(host='localhost', port=3307,
-                                       username='root', password='1582',
-                                       database='face_recognizer')
+        conn = get_db_connection()
         my_cursor = conn.cursor()
         my_cursor.execute('select * from register where email=%s', (self.txt.get(),))
         row = my_cursor.fetchone()
@@ -270,7 +378,7 @@ class login_window:
         self.root1 = Toplevel(self.root)
         self.root1.geometry("340x520+500+150")
         self.root1.title("Forgot Password")
-        self.root1.wm_iconbitmap('college_images\\bg1.ico')
+        self.root1.wm_iconbitmap(resource_path('college_images\\bg1.ico'))
         self.root1.resizable(False, False)
         self.root1.configure(bg='aqua')
 
@@ -322,10 +430,10 @@ class login_window:
         self.new_passw.place(x=50, y=345, width=240)
         self.new_passw.bind('<KeyRelease>', self.check_password_strength)
         self.show_icon = ImageTk.PhotoImage(
-        Image.open("college_images/pass_show.png").resize((22, 22), Image.Resampling.LANCZOS)
+        Image.open(resource_path("college_images/pass_show.png")).resize((22, 22), Image.Resampling.LANCZOS)
     )
         self.hide_icon = ImageTk.PhotoImage(
-            Image.open("college_images/pass_hide.png").resize((22, 22), Image.Resampling.LANCZOS)
+            Image.open(resource_path("college_images/pass_hide.png")).resize((22, 22), Image.Resampling.LANCZOS)
         )
 
         self.password_visible = False
@@ -404,7 +512,9 @@ class login_window:
             "Available Shortcuts:\n\n"
             "Ctrl + Enter  → Login\n"
             "Ctrl + F  → Forgot Password\n"
-            "Ctrl + R        → Register New User"
+            "Ctrl + R        → Register New User\n"
+            "It should take about 35-40 seconds to load the main application and application will load after email confirmation"
+            
         )
 
     def send_security_otp(self):
@@ -428,7 +538,7 @@ class login_window:
             return
 
         # Verify the answer in the database
-        conn = mysql.connector.connect(host='localhost',port=3307, username='root', password='1582', database='face_recognizer')
+        conn = get_db_connection()
         my_cursor = conn.cursor()
         query = 'select * from register where email=%s and securityq=%s and securitya=%s'
         my_cursor.execute(query, (self.txt.get(), sec_q, sec_a))
@@ -458,7 +568,7 @@ class login_window:
 
         try:
             # Read email credentials from credentials.txt
-            with open('credentials.txt') as f:
+            with open(resource_path('credentials.txt')) as f:
                 for line in f:
                     cr = line.strip().split(',')
             sender = cr[0]
@@ -580,7 +690,7 @@ class login_window:
 
             return
 
-        conn = mysql.connector.connect(host='localhost',port=3307, username='root', password='1582', database='face_recognizer')
+        conn = get_db_connection()
         my_cursor = conn.cursor()
         query = 'update register set password=%s where email=%s'
         value = (self.new_passw.get(), self.txt.get())
@@ -591,6 +701,13 @@ class login_window:
         self.root1.destroy()
 
 if __name__ == '__main__':
+    # Initialize Database first
+    try:
+        from setup_database import setup_database
+        setup_database()
+    except Exception as e:
+        print(f"Database setup warning: {e}")
+
     root = Tk()
     obj = login_window(root)
     root.mainloop()

@@ -4,6 +4,7 @@ from tkinter import LEFT, RIGHT, BOTTOM, TOP, BOTH, X, Y, END, SOLID, FLAT, WORD
 from PIL import Image, ImageTk, ImageDraw
 from gtts.lang import tts_langs
 from . import ui_utils
+from utils import resource_path
 
 class ChatBotUI:
     def __init__(self, root, callbacks):
@@ -12,9 +13,9 @@ class ChatBotUI:
         self.is_dark = False # Track theme state
         self.root.title('HelpBot')
         self.root.geometry('1360x680+0+0')
-        self.root.resizable(True, False)
+        self.root.resizable(True, True) # Resizable Vertically now
         self.root.config(bg='powderblue')
-        self.root.wm_iconbitmap('assets/chat.ico')
+        self.root.wm_iconbitmap(resource_path('assets/chat.ico'))
         
         self.setup_styles()
         self.create_layout()
@@ -36,6 +37,7 @@ class ChatBotUI:
                 background=[("active", "#218838"), ("disabled", "#c3c3c3"), ("pressed", "#1e7e34")],
                 foreground=[("active", "white")])
 
+        # Modified Color.TLabel to be generic for header elements if needed
         style.configure("Color.TLabel",
                         background="white",
                         foreground="green",
@@ -50,38 +52,51 @@ class ChatBotUI:
         self.root.columnconfigure(1, weight=1)
         self.root.rowconfigure(1, weight=1)
 
-        # === title label ===
-        img = Image.open('assets/chat.jpg').resize((100, 70), Image.Resampling.LANCZOS)
-        self.photoimg = ImageTk.PhotoImage(img)
+        # === Header Frame (Responsive Replacement) ===
+        # Using a Frame instead of Label to allow responsive packing
+        self.header_frame = Frame(self.root, bg="white")
+        self.header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        
+        # 1. Left Section (Hamburger + Title)
+        left_header = Frame(self.header_frame, bg="white")
+        left_header.pack(side=LEFT, fill=Y)
 
-        self.title_label = ttk.Label(self.root,  text="  Chat Me", anchor="w", 
-                                    font=('Arial', 24, 'bold'),
-                                    style="Color.TLabel", padding=(37, 20, 0, 0))
-        self.title_label.grid(row=0, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
-
-        self.hamburger_icon = ImageTk.PhotoImage(Image.open("assets/menu.png").resize((30, 30)))
-        self.hamburger_btn = Button(self.title_label, image=self.hamburger_icon,
+        self.hamburger_icon = ImageTk.PhotoImage(Image.open(resource_path("assets/menu.png")).resize((30, 30)))
+        self.hamburger_btn = Button(left_header, image=self.hamburger_icon,
                                         command=self.callbacks['toggle_history'], bd=0, bg='white',
                                     activebackground='white', cursor='hand2')  
-        self.hamburger_btn.place(x=5, y=5)
+        self.hamburger_btn.pack(side=LEFT, padx=10, pady=10)
 
-        self.help_icon = ImageTk.PhotoImage(Image.open("assets/chat.jpg").resize((100, 60)))
-        # Pre-load Dark Theme Icon
+        # Title (Chat Me)
+        self.title_label = Label(left_header, text="Chat Me", font=('Arial', 24, 'bold'),
+                                    bg="white", fg="green", padx=10)
+        self.title_label.pack(side=LEFT, pady=10)
+
+        # 2. Right Section (Back, Help, Time)
+        right_header = Frame(self.header_frame, bg="white")
+        right_header.pack(side=RIGHT, fill=Y)
+
+        self.back_btn = Button(right_header, text="Back", width=12, cursor='hand2', font=('times new roman', 10, 'bold'),
+                          bg='red', fg='white', activebackground="green", command=self.callbacks['back'])
+        self.back_btn.pack(side=RIGHT, padx=15, pady=20)
+        
+        # Help Icon
+        self.help_icon = ImageTk.PhotoImage(Image.open(resource_path("assets/chat.jpg")).resize((100, 60)))
         try:
-            self.help_icon_dark = ImageTk.PhotoImage(Image.open("assets/chat_night.png").resize((100, 60)))
+            self.help_icon_dark = ImageTk.PhotoImage(Image.open(resource_path("assets/chat_night.png")).resize((100, 60)))
         except Exception:
-            print("Warning: assets/chat_night.png not found, falling back to chat.jpg")
             self.help_icon_dark = self.help_icon
             
-        self.help_btn = Button(self.title_label, image=self.help_icon,
+        self.help_btn = Button(right_header, image=self.help_icon,
                                 command=self.callbacks['show_help'], bd=0, bg='white',
                             activebackground='white', cursor='hand2')
-        self.help_btn.place(x=190, y=5,height=60,width=100)
+        self.help_btn.pack(side=RIGHT, padx=5)
 
-        self.back_btn = Button(self.title_label, text="Back", width=12, cursor='hand2', font=('times new roman', 10, 'bold'),
-                          bg='red', fg='white', activebackground="green", command=self.callbacks['back'])
-        self.back_btn.place(x=850, y=30, height=25)
-       
+        # Time Label (Centered relative to remaining space or just packed right before buttons)
+        self.time_lbl = Label(right_header, font=('Arial', 18, 'bold'),
+                                background='white', foreground='gold', width=12) # Fixed width prevents jumping
+        self.time_lbl.pack(side=RIGHT, padx=20)
+
         # ToolTip
         try:
             from tooltip import ToolTip
@@ -90,10 +105,6 @@ class ChatBotUI:
         except ImportError:
             pass
 
-        self.time_lbl = ttk.Label(self.title_label, font=('Arial', 18, 'bold'),
-                                background='white', foreground='gold')
-        self.time_lbl.place(x=500, y=15, width=200, height=45)
-
         # === Loading Spinner ===
         # === Loading Spinner (Composite Strategy) ===
         self.spinner_frames = []      # Current active frames
@@ -101,7 +112,7 @@ class ChatBotUI:
         self.spinner_frames_dark = []
         
         try:
-            spinner_gif = Image.open("assets/spinner.gif")
+            spinner_gif = Image.open(resource_path("assets/spinner.gif"))
             
             for frame in range(spinner_gif.n_frames):
                 spinner_gif.seek(frame)
@@ -316,13 +327,13 @@ class ChatBotUI:
     def open_settings_window(self):
         settings_win = tk.Toplevel(self.root)
         settings_win.title("Settings")
-        settings_win.geometry("400x520")
-        settings_win.iconbitmap('assets/chat.ico')
+        settings_win.geometry("450x600")
+        settings_win.iconbitmap(resource_path('assets/chat.ico'))
         settings_win.resizable(False, False)
         
         # Center the window
         x = self.root.winfo_x() + (self.root.winfo_width() // 2) - 200
-        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - 260
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - 335
         settings_win.geometry(f"+{x}+{y}")
         
         # --- THEME DETECTION for Dialog Styling ---
@@ -336,6 +347,7 @@ class ChatBotUI:
         style = ttk.Style()
         style.configure("Settings.TLabelframe", background=dl_bg, foreground=dl_fg)
         style.configure("Settings.TLabelframe.Label", background=dl_bg, foreground=dl_fg, font=("Segoe UI", 11, "bold"))
+        style.configure("Settings.TCheckbutton", background=dl_bg, foreground=dl_fg, font=("Segoe UI", 10))
         
         settings_win.configure(bg=dl_bg)
 
@@ -378,18 +390,70 @@ class ChatBotUI:
         
         # Model Options
         self.model_options = [
-            "tngtech/deepseek-r1t2-chimera:free",
-            "gemini-2.5-flash-lite-preview-09-2025",
+             "openai/gpt-oss-120b:free",
+            "gemini-2.5-flash-lite",
             "bytedance-seed/seedream-4.5"
         ]
         
-        current_model = "tngtech/deepseek-r1t2-chimera:free"
+        current_model =  "openai/gpt-oss-120b:free"
         if 'get_current_model' in self.callbacks:
             current_model = self.callbacks['get_current_model']()
             
         model_var = tk.StringVar(value=current_model)
         model_combo = ttk.Combobox(app_frame, textvariable=model_var, values=self.model_options, state="readonly", font=("Segoe UI", 10))
         model_combo.pack(fill=X, pady=(5, 0))
+
+        # 4. Reasoning Toggle
+        current_reasoning = True
+        if 'get_reasoning_enabled' in self.callbacks:
+            current_reasoning = self.callbacks['get_reasoning_enabled']()
+            
+        reasoning_var = tk.BooleanVar(value=current_reasoning)
+        reasoning_check = ttk.Checkbutton(app_frame, text="Enable Reasoning (gpt oss and gemini Only)", variable=reasoning_var, style="Settings.TCheckbutton")
+        reasoning_check.pack(anchor="w", pady=(10, 0))
+
+        # 5. Thinking Budget Slider (Gemini Only)
+        ttk.Label(app_frame, text="Thinking Budget (Gemini):", background=dl_bg, foreground=dl_fg, font=("Segoe UI", 10)).pack(anchor="w", pady=(10, 0))
+        
+        current_thinking_budget = 1024
+        if 'get_thinking_budget' in self.callbacks:
+             current_thinking_budget = self.callbacks['get_thinking_budget']()
+             
+        budget_var = tk.IntVar(value=current_thinking_budget)
+
+        slider_frame = Frame(app_frame, bg=dl_bg)
+        slider_frame.pack(fill=X, pady=(2, 0))
+        
+        # Custom stylish scale
+        trough_color = "#444444" if is_dark else "#dcdcdc"
+        slider_color = "#17a2b8" # Teal accent
+        
+        budget_slider = tk.Scale(slider_frame, from_=512, to=24576, variable=budget_var, 
+                                 orient=tk.HORIZONTAL, resolution=512, showvalue=0, 
+                                 bg=dl_bg, fg=dl_fg, troughcolor=trough_color, 
+                                 activebackground="#138496", highlightthickness=0, bd=0, sliderlength=15, width=10)
+        budget_slider.pack(side=LEFT, fill=X, expand=True, padx=(0, 10))
+        
+        budget_label = ttk.Label(slider_frame, text=f"{current_thinking_budget}", background=dl_bg, foreground=dl_fg, width=5, font=("Segoe UI", 10, "bold"))
+        budget_label.pack(side=RIGHT)
+        
+        def update_budget_label(*args):
+             val = int(budget_var.get())
+             budget_label.config(text=f"{val}")
+             
+             # Color thresholds
+             if val < 4096:
+                  budget_label.config(foreground="#28a745") # Green
+             elif val < 8192:
+                  budget_label.config(foreground="#fd7e14") # Orange
+             elif val < 16384:
+                  budget_label.config(foreground="#dc3545") # Red
+             else:
+                  budget_label.config(foreground="#6f42c1") # Purple (Max Thinking)
+                  
+        budget_var.trace_add("write", update_budget_label)
+        # Initialize color
+        update_budget_label()
 
         # === Data Management Section ===
         data_frame = ttk.LabelFrame(main_container, text="Data Management", style="Settings.TLabelframe", padding=15)
@@ -417,7 +481,9 @@ class ChatBotUI:
             self.callbacks['save_settings']({
                 "language": selected_code,
                 "model": selected_model,
-                "theme_mode": selected_theme
+                "theme_mode": selected_theme,
+                "reasoning_enabled": reasoning_var.get(),
+                "thinking_budget": int(budget_var.get())
             })
             settings_win.destroy()
             
@@ -706,16 +772,34 @@ class ChatBotUI:
         
         # 1. Main Shell
         self.root.config(bg=colors["bg"])
-        self.title_label.config(background=colors["bg"] if enabled else "white") # Title label has specific styling
-        self.time_lbl.config(background=colors["bg"] if enabled else "white", foreground="gold")
-        self.hamburger_btn.config(bg=colors["text_bg"] if enabled else "white", activebackground=colors["text_bg"])
+        
+        # Header Frame & Children
+        header_bg = colors["bg"] if enabled else "white"
+        active_bg = colors["text_bg"] if enabled else "white"
+        
+        # Update main header container
+        if hasattr(self, 'header_frame'):
+            self.header_frame.config(bg=header_bg)
+            # Update Left/Right frames (children of header_frame)
+            for child in self.header_frame.winfo_children():
+                if isinstance(child, Frame):
+                    child.config(bg=header_bg)
+
+        # Title Label
+        self.title_label.config(bg=header_bg, fg="white" if enabled else "green") 
+        
+        # Time Label
+        self.time_lbl.config(bg=header_bg, fg="gold")
+        
+        # Hamburger Button
+        self.hamburger_btn.config(bg=active_bg, activebackground=active_bg)
         
         # Update Help Button Image and BG
         new_help_icon = self.help_icon_dark if enabled else self.help_icon
         self.help_btn.config(
             image=new_help_icon,
-            bg="#2e2e2e" if enabled else "white", 
-            activebackground="#2e2e2e" if enabled else "white"
+            bg=header_bg, 
+            activebackground=header_bg
         )
         
         # 2. Text Area (Input & Main Chat)

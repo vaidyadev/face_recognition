@@ -3,9 +3,13 @@ import base64
 import os
 from datetime import datetime
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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",
+    api_key=os.getenv("OPENAI_API_KEY"),
 )
 
 # Generate an image

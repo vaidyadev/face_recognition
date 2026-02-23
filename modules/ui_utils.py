@@ -4,6 +4,7 @@ import os
 import threading
 import tkinter as tk
 from tkinter import ttk, Label, Frame, Canvas, Button, Text, Scrollbar, messagebox
+from utils import resource_path
 from tkinter import LEFT, RIGHT, BOTTOM, TOP, BOTH, X, Y, END, SOLID, FLAT, NONE, NE, NW, WORD, DISABLED, NORMAL, SEL_FIRST, SEL_LAST, HORIZONTAL, VERTICAL
 from PIL import Image, ImageTk
 import tempfile
@@ -43,7 +44,7 @@ def render_latex_equation(text_widget, latex_expr, is_dark=False):
 
         # Save to temp file and close plot
         temp_dir = tempfile.gettempdir()
-        temp_path = os.path.join(temp_dir, f"latex_{int(time.time() * 1000)}.png")
+        temp_path = os.path.join(temp_dir, resource_path(f"latex_{int(time.time() * 1000)}.png"))
         plt.savefig(temp_path, dpi=150, bbox_inches='tight', pad_inches=0.2, transparent=True)
         plt.close(fig)
 

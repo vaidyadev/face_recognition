@@ -3,7 +3,7 @@ from tkinter import *
 from tkinter import ttk
 from PIL import Image, ImageTk
 from tkinter import messagebox
-import mysql.connector
+from config import get_db_connection
 import cv2
 import calendar
 import datetime
@@ -20,6 +20,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
+from utils import resource_path
 # Global list to hold data for filtering/sorting in memory
 mydata = []
 
@@ -29,7 +30,7 @@ class DatePickerDialog:
         self.dialog.title("Select Date")
         self.dialog.transient(parent)
         try:
-            self.dialog.iconbitmap('college_images\\bg1.ico')
+            self.dialog.iconbitmap(resource_path('college_images\\bg1.ico'))
         except:
             pass
         self.dialog.grab_set()
@@ -165,7 +166,7 @@ class TimePickerDialog:
         self.dialog.grab_set()
 
         try:
-            self.dialog.iconbitmap('college_images\\bg1.ico')
+            self.dialog.iconbitmap(resource_path('college_images\\bg1.ico'))
         except:
             pass
 
@@ -261,9 +262,10 @@ class attendance:
         self.root = root
         self.root.geometry("1360x680+0+0")
         self.root.title("Attendance Management System")
-        self.root.resizable(False, False)
+        self.root.resizable(True, True)
+        self.root.minsize(1024, 600)
         try:
-            self.root.wm_iconbitmap('college_images\\bg1.ico')
+            self.root.wm_iconbitmap(resource_path('college_images\\bg1.ico'))
         except:
             pass
 
@@ -293,71 +295,83 @@ class attendance:
         # --- Database Setup ---
         self.setup_database()
 
-        # --- UI Header ---
+        # --- UI Header & Layout ---
         try:
-            img = Image.open("college_images\\smart-attendance.jpg")
-            img = img.resize((625, 170), Image.Resampling.LANCZOS)
-            self.photoimg = ImageTk.PhotoImage(img)
-            f_lbl = Label(self.root, image=self.photoimg)
-            f_lbl.place(x=0, y=0, width=625, height=170)
+            # Header Image 1
+            self.org_img_h1 = Image.open(resource_path("college_images\\smart-attendance.jpg"))
+            self.h_lbl1 = Label(self.root, bg='white')
+            self.h_lbl1.place(relx=0, rely=0, relwidth=0.46, relheight=0.25)
+            
+            # Header Image 2
+            self.org_img_h2 = Image.open(resource_path("college_images\\12.jpg"))
+            self.h_lbl2 = Label(self.root, bg='white')
+            self.h_lbl2.place(relx=0.46, rely=0, relwidth=0.54, relheight=0.25)
 
-            img1 = Image.open("college_images\\12.jpg")
-            img1 = img1.resize((735, 170), Image.Resampling.LANCZOS)
-            self.photoimg1 = ImageTk.PhotoImage(img1)
-            f_lbl1 = Label(self.root, image=self.photoimg1)
-            f_lbl1.place(x=625, y=0, width=735, height=170)
-
-            img3 = Image.open("college_images\\wp2551980.jpg")
-            img3 = img3.resize((1360, 560), Image.Resampling.LANCZOS)
-            self.photoimg3 = ImageTk.PhotoImage(img3)
-            bg_img = Label(self.root, image=self.photoimg3)
-            bg_img.place(x=0, y=170, width=1360, height=510)
+            # Background Image
+            self.org_img_bg = Image.open(resource_path("college_images\\wp2551980.jpg"))
+            self.bg_lbl = Label(self.root, bg='white')
+            # Y=170/680 = 0.25. Height=510/680=0.75
+            self.bg_lbl.place(relx=0, rely=0.25, relwidth=1.0, relheight=0.75)
+            
         except Exception as e:
-             bg_img = Frame(self.root, bg='white')
-             bg_img.place(x=0, y=170, width=1360, height=510)
+            print(f"Error loading images: {e}")
+            self.bg_lbl = Frame(self.root, bg='white')
+            self.bg_lbl.place(relx=0, rely=0.25, relwidth=1.0, relheight=0.75)
 
-        self.title_lbl = Label(bg_img, text='ATTENDANCE MANAGEMENT SYSTEM', font=('times new roman', 35, 'bold'), bg='white', fg='green')
-        self.title_lbl.place(x=0, y=0, width=1360, height=45)
+        # Overlays - Parent to Root
+        self.title_lbl = Label(self.root, text='ATTENDANCE MANAGEMENT SYSTEM', font=('times new roman', 35, 'bold'), bg='white', fg='green')
+        self.title_lbl.place(relx=0, rely=0.25, relwidth=1.0, relheight=0.065)
 
-        self.time_lbl = Label(bg_img, font=('times new roman', 15, 'bold'), bg='white', fg='red', borderwidth=0, highlightthickness=0)
-        self.time_lbl.place(x=0, y=0, width=120, height=45)
+        self.time_lbl = Label(self.root, font=('times new roman', 15, 'bold'), bg='white', fg='red', borderwidth=0, highlightthickness=0)
+        self.time_lbl.place(relx=0, rely=0.25, relwidth=0.09, relheight=0.065)
         self.update_time()
 
-        back_btn = Button(self.title_lbl, text="Back", width=22, cursor='hand2', font=('times new roman', 10, 'bold'), bg='red', fg='white', activebackground="green", command=self.back)
-        back_btn.place(x=1150, y=10, height=25)
+        self.back_btn_frame = Frame(self.root, bg='white')
+        self.back_btn_frame.place(relx=0.85, rely=0.25, relwidth=0.15, relheight=0.065)
+        
+        back_btn = Button(self.back_btn_frame, text="Back", width=22, cursor='hand2', font=('times new roman', 10, 'bold'), bg='red', fg='white', activebackground="green", command=self.back)
+        back_btn.pack(pady=5, padx=10)
 
         # --- Main Frame ---
-        main_frame = Frame(bg_img, bd=2)
-        main_frame.place(x=10, y=50, width=1330, height=460)
+        # Original: y=170 + 50 = 220? No, code said 50 inside bg. 
+        # Bg starts at 170. So 220 absolute. 220/680 = 0.323.
+        # Let's say rely=0.32.
+        main_frame = Frame(self.root, bd=2)
+        main_frame.place(relx=0.007, rely=0.32, relwidth=0.986, relheight=0.67)
+        
+        # Resize Binding
+        self.resize_timer = None
+        self.root.bind("<Configure>", self.on_resize)
 
         # --- Left Frame (Controls) ---
         left_frame = LabelFrame(main_frame, bd=2, bg='white', relief=RIDGE, text='Students Attendance Details', font=('times new roman', 12, 'bold'))
-        left_frame.place(x=10, y=10, width=645, height=440)
+        left_frame.place(relx=0.005, rely=0.02, relwidth=0.48, relheight=0.96)
 
         try:
-            img_left = Image.open("college_images\\face-recognition.png")
-            img_left = img_left.resize((635, 90), Image.Resampling.LANCZOS)
+            self.org_img_left = Image.open(resource_path("college_images\\face-recognition.png"))
+            img_left = self.org_img_left.resize((635, 90), Image.Resampling.LANCZOS)
             self.left_photoimg = ImageTk.PhotoImage(img_left)
-            f_lbl = Label(left_frame, image=self.left_photoimg)
-            f_lbl.place(x=5, y=0, width=635, height=90)
+            self.f_lbl_left = Label(left_frame, image=self.left_photoimg)
+            self.f_lbl_left.place(relx=0.01, rely=0, relwidth=0.98, relheight=0.18)
         except:
             pass
 
         left_inside_frame = Frame(left_frame, bd=2, relief=RIDGE, bg='white')
-        left_inside_frame.place(x=0, y=95, width=640, height=320)
+        left_inside_frame.place(relx=0, rely=0.2, relwidth=1.0, relheight=0.78)
+        for i in range(4): left_inside_frame.columnconfigure(i, weight=1)
 
         # Inputs
         # Attendance ID
         Label(left_inside_frame, text='AttendanceID:', font=('times new roman', 12, 'bold'), bg='white').grid(row=0, column=0, padx=5, sticky=W)
-        ttk.Entry(left_inside_frame, width=15, font=('times new roman', 12), textvariable=self.var_atten_id).grid(row=0, column=1, padx=5, pady=3, sticky=W)
+        ttk.Entry(left_inside_frame, width=15, font=('times new roman', 12), textvariable=self.var_atten_id).grid(row=0, column=1, padx=5, pady=3, sticky='EW')
         
         # Name
         Label(left_inside_frame, text='Name:', font=('times new roman', 12, 'bold'), bg='white').grid(row=0, column=2, padx=5, sticky=W)
-        ttk.Entry(left_inside_frame, width=15, font=('times new roman', 12), textvariable=self.var_atten_name).grid(row=0, column=3, padx=5, pady=3, sticky=W)
+        ttk.Entry(left_inside_frame, width=15, font=('times new roman', 12), textvariable=self.var_atten_name).grid(row=0, column=3, padx=5, pady=3, sticky='EW')
         
         # Roll
         Label(left_inside_frame, text='Roll No:', font=('times new roman', 12, 'bold'), bg='white').grid(row=1, column=0, padx=5, sticky=W)
-        ttk.Entry(left_inside_frame, width=15, font=('times new roman', 12), textvariable=self.var_atten_roll).grid(row=1, column=1, padx=5, pady=3, sticky=W)
+        ttk.Entry(left_inside_frame, width=15, font=('times new roman', 12), textvariable=self.var_atten_roll).grid(row=1, column=1, padx=5, pady=3, sticky='EW')
         
         # Dept
         Label(left_inside_frame, text='Department:', font=('times new roman', 12, 'bold'), bg='white')\
@@ -372,7 +386,7 @@ class attendance:
         )
         dept_combo['values'] = ("Computer", "IT", "Civil", "Mechenical")
         dept_combo.set("Select Department")
-        dept_combo.grid(row=1, column=3, padx=5, pady=3, sticky=W)
+        dept_combo.grid(row=1, column=3, padx=5, pady=3, sticky='EW')
 
         
         # Time
@@ -380,7 +394,7 @@ class attendance:
         .grid(row=2, column=0, padx=5, sticky=W)
 
         time_frame = Frame(left_inside_frame, bg='white')
-        time_frame.grid(row=2, column=1, padx=5, pady=3, sticky=W)
+        time_frame.grid(row=2, column=1, padx=5, pady=3, sticky='EW')
 
         ttk.Entry(
             time_frame, width=12, font=('times new roman', 12),
@@ -399,7 +413,7 @@ class attendance:
         
         # Create a frame to hold entry and button together for alignment
         date_frame = Frame(left_inside_frame, bg='white')
-        date_frame.grid(row=2, column=3, padx=5, pady=3, sticky=W)
+        date_frame.grid(row=2, column=3, padx=5, pady=3, sticky='EW')
         
         date_entry = ttk.Entry(date_frame, width=17, font=('times new roman', 12), textvariable=self.var_atten_date)
         date_entry.pack(side=LEFT)
@@ -412,24 +426,28 @@ class attendance:
         status_combo = ttk.Combobox(left_inside_frame, font=('times new roman', 12, 'bold'), width=13, state='readonly', textvariable=self.var_atten_status)
         status_combo['values'] = ('Present', 'Absent')
         status_combo.current(0)
-        status_combo.grid(row=3, column=1, padx=5, pady=5, sticky=W)
+        status_combo.grid(row=3, column=1, padx=5, pady=5, sticky='EW')
 
         # --- Button Frame 1 (CRUD) ---
         btn_frame = Frame(left_inside_frame, bd=2, relief=RIDGE, bg='white')
-        btn_frame.place(x=5, y=180, width=625, height=35)
+        btn_frame.place(relx=0.01, rely=0.54, relwidth=0.98, relheight=0.12)
+        for i in range(4): btn_frame.columnconfigure(i, weight=1)
+        btn_frame.rowconfigure(0, weight=1)
 
-        Button(btn_frame, text="Save", command=self.add_data, width=16, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=0)
-        Button(btn_frame, text="Update", command=self.update_data, width=16, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=1)
-        Button(btn_frame, text="Delete", command=self.delete_data, width=16, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=2)
-        Button(btn_frame, text="Reset", command=self.reset_data, width=16, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=3)
+        Button(btn_frame, text="Save", command=self.add_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=0, sticky='NSEW')
+        Button(btn_frame, text="Update", command=self.update_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=1, sticky='NSEW')
+        Button(btn_frame, text="Delete", command=self.delete_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=2, sticky='NSEW')
+        Button(btn_frame, text="Reset", command=self.reset_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=3, sticky='NSEW')
 
         # --- Button Frame 2 (Report/Inform) ---
         
         btn_frame3 = Frame(left_inside_frame, bd=2, relief=RIDGE, bg='white')
-        btn_frame3.place(x=5, y=240, width=625, height=75)
+        btn_frame3.place(relx=0.01, rely=0.68, relwidth=0.98, relheight=0.30)
+        for i in range(2): btn_frame3.columnconfigure(i, weight=1)
+        for i in range(2): btn_frame3.rowconfigure(i, weight=1)
         
-        Button(btn_frame3, text="Inform Students", command=self.inform, width=33, cursor='hand2', font=('times new roman', 11, 'bold'), bg='purple', fg='white').grid(row=0, column=0)
-        Button(btn_frame3, text="Attendance Report", command=self.plot_attendance_graph, width=33, cursor='hand2', font=('times new roman', 11, 'bold'), bg='purple', fg='white').grid(row=0, column=1)
+        Button(btn_frame3, text="Inform Students", command=self.inform, cursor='hand2', font=('times new roman', 11, 'bold'), bg='purple', fg='white').grid(row=0, column=0, sticky='NSEW')
+        Button(btn_frame3, text="Attendance Report", command=self.plot_attendance_graph, cursor='hand2', font=('times new roman', 11, 'bold'), bg='purple', fg='white').grid(row=0, column=1, sticky='NSEW')
         Button(
             btn_frame3,
             text="Export Attendance",
@@ -441,46 +459,67 @@ class attendance:
         ).grid(
             row=1,
             column=0,
-            columnspan=2,   # ⭐ spans both columns
-            sticky="we",    # ⭐ full width
-            pady=5
+            columnspan=1,  
+            sticky="NSEW",    
+            pady=2
+        )
+
+        Button(
+            btn_frame3,
+            text="Check Low Attendance",
+            command=self.check_attendance_alert,
+            cursor='hand2',
+            font=('times new roman', 11, 'bold'),
+            bg='red',
+            fg='white'
+        ).grid(
+            row=1,
+            column=1,
+            columnspan=1, 
+            sticky="NSEW",    
+            pady=2
         )
 
         # --- Right Frame (Table) ---
         right_frame = LabelFrame(main_frame, bd=2, bg='white', relief=RIDGE, text='Attendance Details', font=('times new roman', 12, 'bold'))
-        right_frame.place(x=665, y=10, width=645, height=440)
+        right_frame.place(relx=0.51, rely=0.02, relwidth=0.485, relheight=0.96)
 
         # --- Search Frame (Identical to student.py) ---
         search_frame = LabelFrame(right_frame, bd=2, bg='white', relief=RIDGE, text='Search System', font=('times new roman', 12, 'bold'))
-        search_frame.place(x=5, y=5, width=635, height=60)
+        search_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.14)
+        search_frame.columnconfigure(0, weight=0)
+        search_frame.columnconfigure(1, weight=1)
+        search_frame.columnconfigure(2, weight=2)
+        for i in range(3, 6): search_frame.columnconfigure(i, weight=1)
+        search_frame.rowconfigure(0, weight=1)
 
         search_label = Label(search_frame, text='Search By :', font=('times new roman', 12, 'bold'), bg='red', fg='white')
-        search_label.grid(row=0, column=0, padx=5, sticky=W)
+        search_label.grid(row=0, column=0, padx=5, sticky='NSEW')
 
         search_combo = ttk.Combobox(search_frame, font=('times new roman', 12, 'bold'), width=12, state='read', textvariable=self.var_search_combo)
         search_combo["values"] = ("Student_id", "Name", "Roll", "Dep", "Date", "Status")
         search_combo.current(0)
         search_combo.set("Select Option")
-        search_combo.grid(row=0, column=1, padx=2, sticky=W)
+        search_combo.grid(row=0, column=1, padx=2, sticky='EW')
 
         # Widened Search Entry
         search_entry = ttk.Entry(search_frame, width=25, font=('times new roman', 12, 'bold'), textvariable=self.var_search_entry)
-        search_entry.grid(row=0, column=2, padx=2, pady=3, sticky=W)
+        search_entry.grid(row=0, column=2, padx=2, pady=3, sticky='EW')
         search_entry.bind("<KeyRelease>", self.advanced_search)
 
-        reset_btn = Button(search_frame, text="Reset", width=7, cursor='hand2', font=('times new roman', 10, 'bold'), bg='green', fg='white', activebackground="red", activeforeground='green', command=self.reset_search)
-        reset_btn.grid(row=0, column=3, padx=3)
+        reset_btn = Button(search_frame, text="Reset", cursor='hand2', font=('times new roman', 10, 'bold'), bg='green', fg='white', activebackground="red", activeforeground='green', command=self.reset_search)
+        reset_btn.grid(row=0, column=3, padx=3, sticky='NSEW')
         
         # Added Refresh Button
-        refresh_btn = Button(search_frame, text="Refresh", width=7, cursor='hand2', font=('times new roman', 10, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green', command=lambda: self.refresh_animation(self.auto_load_data)
+        refresh_btn = Button(search_frame, text="Refresh", cursor='hand2', font=('times new roman', 10, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green', command=lambda: self.refresh_animation(self.auto_load_data)
         )
-        refresh_btn.grid(row=0, column=4, padx=3)
+        refresh_btn.grid(row=0, column=4, padx=3, sticky='NSEW')
         
-        Button(search_frame, text="Filter", font=("times new roman", 10, "bold"), bg="purple", fg="white", cursor='hand2', activebackground="#5d57b4", activeforeground='black', width=7, command=self.open_filter_window).grid(row=0, column=5, padx=3)
+        Button(search_frame, text="Filter", font=("times new roman", 10, "bold"), bg="purple", fg="white", cursor='hand2', activebackground="#5d57b4", activeforeground='black', command=self.open_filter_window).grid(row=0, column=5, padx=3, sticky='NSEW')
 
         # --- Table Frame ---
         table_frame = Frame(right_frame, bd=2, bg='white', relief=RIDGE)
-        table_frame.place(x=5, y=75, width=635, height=340)
+        table_frame.place(relx=0.01, rely=0.16, relwidth=0.98, relheight=0.82)
 
         scroll_x = ttk.Scrollbar(table_frame, orient=HORIZONTAL)
         scroll_y = ttk.Scrollbar(table_frame, orient=VERTICAL)
@@ -695,7 +734,7 @@ class attendance:
 
     def setup_database(self):
         try:
-            conn = mysql.connector.connect(host='localhost', port=3307, username='root', password='1582', database='face_recognizer')
+            conn = get_db_connection()
             my_cursor = conn.cursor()
             my_cursor.execute("""
             CREATE TABLE IF NOT EXISTS attendance (
@@ -715,7 +754,7 @@ class attendance:
             messagebox.showerror("Error", f"Database Setup Failed: {e}")
 
     def get_db_connection(self):
-        return mysql.connector.connect(host='localhost', port=3307, username='root', password='1582', database='face_recognizer')
+        return get_db_connection()
 
     def open_attendance_date_calendar(self):
         try:
@@ -932,7 +971,7 @@ class attendance:
         win.grab_set()
 
         try:
-            win.iconbitmap('college_images\\bg1.ico')
+            win.iconbitmap(resource_path('college_images\\bg1.ico'))
         except:
             pass
         
@@ -1067,6 +1106,84 @@ class attendance:
 
     def back(self):
         self.root.destroy()
+
+    # ================== RESIZING LOGIC ==================
+    def on_resize(self, event):
+        """Variable delay to prevent lag while dragging"""
+        if event.widget == self.root:
+            if self.resize_timer:
+                self.root.after_cancel(self.resize_timer)
+            self.resize_timer = self.root.after(100, self.update_layout_images)
+
+    def update_layout_images(self):
+        """Resizes background and header images and handles Z-order"""
+        # Get current dimensions
+        win_w = self.root.winfo_width()
+        win_h = self.root.winfo_height()
+        
+        if win_w < 100 or win_h < 100: return
+        
+        # 1. Header Images
+        h_h = int(win_h * 0.25) # 170/680 = 0.25
+        h_w_1 = int(win_w * 0.46) # 625/1360 approx 0.46
+        # h_w_2 = remainder
+        
+        # Helper to update label image
+        def update_img(lbl, orig, w, h):
+            if w<=0 or h<=0: return
+            try:
+                resized = orig.resize((w, h), Image.Resampling.LANCZOS)
+                photo = ImageTk.PhotoImage(resized)
+                lbl.config(image=photo)
+                lbl.image = photo 
+            except Exception as e:
+                pass
+            
+        if hasattr(self, 'h_lbl1') and hasattr(self, 'org_img_h1'):
+            update_img(self.h_lbl1, self.org_img_h1, h_w_1, h_h)
+            
+        if hasattr(self, 'h_lbl2') and hasattr(self, 'org_img_h2'):
+            # Calculate remaining width to avoid gaps
+            h_w_2 = win_w - h_w_1
+            update_img(self.h_lbl2, self.org_img_h2, h_w_2, h_h)
+        
+        # 2. Background Image
+        bg_h = int(win_h * 0.75) # 510/680 = 0.75
+        if hasattr(self, 'bg_lbl') and hasattr(self, 'org_img_bg'):
+            update_img(self.bg_lbl, self.org_img_bg, win_w, bg_h)
+        
+        # 3. Inner Frame Image (left_frame image)
+        if hasattr(self, 'f_lbl_left') and hasattr(self, 'org_img_left'):
+            try:
+                self.f_lbl_left.update_idletasks()
+                lf_w = self.f_lbl_left.winfo_width()
+                lf_h = self.f_lbl_left.winfo_height()
+                if lf_w > 10 and lf_h > 10:
+                    update_img(self.f_lbl_left, self.org_img_left, lf_w, lf_h)
+            except:
+                pass
+            
+        # 3. Z-Order Lifting (Critical for visibility)
+        if hasattr(self, 'title_lbl'): self.title_lbl.lift()
+        if hasattr(self, 'time_lbl'): self.time_lbl.lift()
+        if hasattr(self, 'back_btn_frame'): self.back_btn_frame.lift()
+        
+        # Force a redraw
+        self.root.update_idletasks()
+
+    def check_attendance_alert(self):
+        try:
+            from notifications import LowAttendanceNotifier
+            notifier = LowAttendanceNotifier()
+            messagebox.showinfo("Processing", "Checking attendance levels and sending alerts (Email/Telegram)... This happens in background.",parent=self.root)
+            
+            def notify_callback(result):
+                messagebox.showinfo("Attendance Alert Result", result,parent=self.root)
+                
+            notifier.check_and_notify_threaded(notify_callback)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to allow threaded check: {e}",parent=self.root)
 
 if __name__ == '__main__':
     root = Tk()

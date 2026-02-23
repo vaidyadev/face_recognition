@@ -3,7 +3,7 @@ from tkinter import *
 from tkinter import ttk
 from PIL import Image,ImageTk
 from tkinter import messagebox
-import mysql.connector
+from config import get_db_connection
 import cv2
 from datetime import datetime
 from tkcalendar import DateEntry
@@ -23,6 +23,7 @@ from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
+from utils import resource_path
 
 class DatePickerDialog:
     def __init__(self, parent, initial_date, callback):
@@ -30,7 +31,7 @@ class DatePickerDialog:
         self.dialog.title("Select Date")
         self.dialog.transient(parent)
         try:
-            self.dialog.iconbitmap('college_images\\bg1.ico')
+            self.dialog.iconbitmap(resource_path('college_images\\bg1.ico'))
         except:
             pass
         self.dialog.grab_set()
@@ -141,9 +142,10 @@ class students:
         self.root = root
         self.root.geometry("1360x680+0+0")
         self.root.title("Face Recognition System")
-        self.root.resizable(False, False)
+        self.root.resizable(True, True)
+        self.root.minsize(1024, 600)
         try:
-            self.root.wm_iconbitmap('college_images\\bg1.ico')
+            self.root.wm_iconbitmap(resource_path('college_images\\bg1.ico'))
         except:
             pass
 
@@ -181,75 +183,94 @@ class students:
         "BCA": 8, "B.Sc IT": 6, "Diploma": 6, "B.Tech": 8, "B.E": 8,
         "MCA": 2, "M.Sc IT": 4, "M.Tech": 4, "M.E": 4
         }
-
+        
+        # --- IMAGES & LAYOUT ---
+        # 1. Header Images
         try:
-            img = Image.open("college_images\\face-recognition.png")
-            img = img.resize((450, 130), Image.Resampling.LANCZOS)
-            self.photoimg = ImageTk.PhotoImage(img)
-            f_lbl = Label(self.root, image=self.photoimg)
-            f_lbl.place(x=0, y=0, width=450, height=130)
+            self.org_img_h1 = Image.open(resource_path("college_images\\face-recognition.png"))
+            self.h_lbl1 = Label(self.root, bg='white')
+            self.h_lbl1.place(relx=0, rely=0, relwidth=0.333, relheight=0.191)
+            
+            self.org_img_h2 = Image.open(resource_path("college_images\\smart-attendance.jpg"))
+            self.h_lbl2 = Label(self.root, bg='white')
+            self.h_lbl2.place(relx=0.333, rely=0, relwidth=0.333, relheight=0.191)
+            
+            self.org_img_h3 = Image.open(resource_path("college_images\\12.jpg"))
+            self.h_lbl3 = Label(self.root, bg='white')
+            # Use 0.334 for the last one to cover remaining space
+            self.h_lbl3.place(relx=0.666, rely=0, relwidth=0.334, relheight=0.191)
 
-            img1 = Image.open("college_images\\smart-attendance.jpg")
-            img1 = img1.resize((450, 130), Image.Resampling.LANCZOS)
-            self.photoimg1 = ImageTk.PhotoImage(img1)
-            f_lbl1 = Label(self.root, image=self.photoimg1)
-            f_lbl1.place(x=450, y=0, width=450, height=130)
+            # 2. Background Image
+            self.org_img_bg = Image.open(resource_path("college_images\\wp2551980.jpg"))
+            self.bg_lbl = Label(self.root, bg='white')
+            self.bg_lbl.place(relx=0, rely=0.191, relwidth=1.0, relheight=0.809)
 
-            img2 = Image.open("college_images\\12.jpg")
-            img2 = img2.resize((460, 130), Image.Resampling.LANCZOS)
-            self.photoimg2 = ImageTk.PhotoImage(img2)
-            f_lbl2 = Label(self.root, image=self.photoimg2)
-            f_lbl2.place(x=900, y=0, width=460, height=130)
-
-            img3 = Image.open("college_images\\wp2551980.jpg")
-            img3 = img3.resize((1360, 560), Image.Resampling.LANCZOS)
-            self.photoimg3 = ImageTk.PhotoImage(img3)
-            bg_img = Label(self.root, image=self.photoimg3)
-            bg_img.place(x=0, y=131, width=1360, height=560)
         except Exception as e:
-            bg_img = Frame(self.root, bg='white')
-            bg_img.place(x=0, y=131, width=1360, height=560)
+            print(f"Error loading images: {e}")
+            self.bg_lbl = Frame(self.root, bg='white')
+            self.bg_lbl.place(relx=0, rely=0.191, relwidth=1.0, relheight=0.809)
 
-        self.title_lbl = Label(bg_img, text='STUDENT MANAGEMENT SYSTEM', font=('times new roman', 35, 'bold'), bg='white', fg='green')
-        self.title_lbl.place(x=0, y=0, width=1360, height=45)
+        # 3. Overlays (Title, Time, Back Button) - Parent to root for Z-order stability
+        self.title_lbl = Label(self.root, text='STUDENT MANAGEMENT SYSTEM', font=('times new roman', 30, 'bold'), bg='white', fg='green', borderwidth=0)
+        # Position relative to root. approx y=0.191 + margin? 
+        # Original was y=0 on bg_img (which was at 131). So rely=0.191
+        self.title_lbl.place(relx=0, rely=0.191, relwidth=1.0, relheight=0.065)
 
-        back_btn=Button(self.title_lbl,text="Back",width=22,cursor='hand2',font=('times new roman', 10, 'bold'), bg='red', fg='white',activebackground="green",command=self.back)
-        back_btn.place(x=1150,y=10,height=25)
-
-        self.time_lbl = Label(bg_img, font=('times new roman', 15, 'bold'), bg='white', fg='red',borderwidth=0,highlightthickness=0)
-        self.time_lbl.place(x=0, y=0, width=120, height=45)
+        self.time_lbl = Label(self.root, font=('times new roman', 15, 'bold'), bg='white', fg='red',borderwidth=0,highlightthickness=0)
+        self.time_lbl.place(relx=0, rely=0.191, relwidth=0.09, relheight=0.065)
         self.update_time() 
 
-        main_frame=Frame(bg_img,bd=2)
-        main_frame.place(x=10,y=50,width=1330,height=500)
+        self.back_btn_frame = Frame(self.root, bg='white')
+        self.back_btn_frame.place(relx=0.85, rely=0.191, relwidth=0.15, relheight=0.065) # Approx placement
+        
+        # Original was x=1150 (84%), y=10.
+        back_btn=Button(self.back_btn_frame,text="Back",width=22,cursor='hand2',font=('times new roman', 10, 'bold'), bg='red', fg='white',activebackground="green",command=self.back)
+        back_btn.pack(pady=5, padx=10) # Simple pack inside frame
+
+        # 4. Main Frame Container
+        # Original: x=10, y=50 inside bg. W=1330, H=500.
+        # Inside Root: Y=131+50=181 -> 181/680 = 0.266
+        # H=500/680 = 0.735
+        # We'll parent it to ROOT to be safe with Z-order over bg_lbl
+        main_frame=Frame(self.root,bd=2)
+        main_frame.place(relx=0.007, rely=0.26, relwidth=0.986, relheight=0.73)
+        
+        # Resize Handling
+        self.resize_timer = None
+        self.root.bind("<Configure>", self.on_resize)
 
         left_frame=LabelFrame(main_frame,bd=2,bg='white',relief=RIDGE,text='Students Details',font=('times new roman', 12, 'bold'))
-        left_frame.place(x=10,y=10,width=645,height=480)
+        # Original: x=10, y=10, w=645, h=480.
+        # Relative to main_frame (1330x500):
+        # relx ~ 0.0075, rely ~ 0.02, relw ~ 0.485, relh ~ 0.96
+        left_frame.place(relx=0.005, rely=0.02, relwidth=0.48, relheight=0.99)
+
         
         try:
-            img_left = Image.open("college_images\\AdobeStock_303989091.jpeg")
-            img_left = img_left.resize((635, 130), Image.Resampling.LANCZOS)
+            self.org_img_left = Image.open(resource_path("college_images\\AdobeStock_303989091.jpeg"))
+            img_left = self.org_img_left.resize((635, 140), Image.Resampling.LANCZOS)
             self.left_photoimg = ImageTk.PhotoImage(img_left)
-            f_lbl = Label(left_frame, image=self.left_photoimg)
-            f_lbl.place(x=5, y=0, width=635, height=80)
+            self.f_lbl_left = Label(left_frame, image=self.left_photoimg)
+            self.f_lbl_left.place(relx=0.01, rely=0, relwidth=0.98, relheight=0.18)
         except:
             pass
 
         current_course_frame=LabelFrame(left_frame,bd=2,bg='white',relief=RIDGE,text='Current Course Information',font=('times new roman', 12, 'bold'))
-        current_course_frame.place(x=5,y=85,width=635,height=90)
+        current_course_frame.place(relx=0.01, rely=0.16, relwidth=0.98, relheight=0.20)
+        for i in range(4): current_course_frame.columnconfigure(i, weight=1)
         dep_label=Label(current_course_frame,text='Department',font=('times new roman', 12, 'bold'),bg='white')
         dep_label.grid(row=0,column=0,padx=5,sticky=W)
         dep_combo = ttk.Combobox(current_course_frame,font=('times new roman', 12, 'bold'),width=17,textvariable=self.var_dep,state='readonly')
         dep_combo['values'] = list(self.dep_course_map.keys())
         dep_combo.set("Select Department")
-        dep_combo.grid(row=0, column=1, padx=2, pady=5, sticky=W)
+        dep_combo.grid(row=0, column=1, padx=2, pady=5, sticky='EW')
         dep_combo.bind("<<ComboboxSelected>>", self.update_course)
 
         course_label=Label(current_course_frame,text='          Course',font=('times new roman', 12, 'bold'),bg='white')
         course_label.grid(row=0,column=2,padx=5,sticky=W)
         self.course_combo = ttk.Combobox(current_course_frame,font=('times new roman', 12, 'bold'),textvariable=self.var_course,width=17,state='readonly')
         self.course_combo.set("Select Course")
-        self.course_combo.grid(row=0, column=3, padx=5, pady=5, sticky=W)
+        self.course_combo.grid(row=0, column=3, padx=5, pady=5, sticky='EW')
         self.course_combo.bind("<<ComboboxSelected>>", self.update_semester)
 
         year_label=Label(current_course_frame,text='Year',font=('times new roman', 12, 'bold'),bg='white')
@@ -259,62 +280,65 @@ class students:
         year_combo = ttk.Combobox(current_course_frame,font=('times new roman', 12, 'bold'),textvariable=self.var_year,width=17,state='readonly')
         year_combo['values'] = years
         year_combo.set("Select Year")
-        year_combo.grid(row=1, column=1, padx=2, pady=5, sticky=W)
+        year_combo.grid(row=1, column=1, padx=2, pady=5, sticky='EW')
 
         semester_label=Label(current_course_frame,text='           Semester',font=('times new roman', 12, 'bold'),bg='white')
         semester_label.grid(row=1,column=2,padx=2,sticky=W)
         self.semester_combo = ttk.Combobox(current_course_frame,font=('times new roman', 12, 'bold'),textvariable=self.var_semester,width=17,state='readonly')
         self.semester_combo.set("Select Semester")
-        self.semester_combo.grid(row=1, column=3, padx=5, pady=5, sticky=W)
+        self.semester_combo.grid(row=1, column=3, padx=5, pady=5, sticky='EW')
 
         class_student_frame=LabelFrame(left_frame,bd=2,bg='white',relief=RIDGE,text='Class Student Information',font=('times new roman', 12, 'bold'))
-        class_student_frame.place(x=5,y=180,width=635,height=275)
+        class_student_frame.place(relx=0.01, rely=0.36, relwidth=0.98, relheight=0.62)
+        for i in range(4): class_student_frame.columnconfigure(i, weight=1)
         
         student_id_label=Label(class_student_frame,text='StudentId :',font=('times new roman', 12, 'bold'),bg='white')
         student_id_label.grid(row=0,column=0,padx=5,sticky=W)
         studentid_entry=ttk.Entry(class_student_frame,width=20,font=('times new roman', 12, 'bold'),textvariable=self.va_std_id)
-        studentid_entry.grid(row=0,column=1,padx=5,pady=3,sticky=W)
+        studentid_entry.grid(row=0,column=1,padx=5,pady=3,sticky='EW')
         
         studentname_label=Label(class_student_frame,text='StudentName :',font=('times new roman', 12, 'bold'),bg='white')
         studentname_label.grid(row=0,column=2,padx=5,sticky=W)
         studentname_entry=ttk.Entry(class_student_frame,width=20,font=('times new roman', 12, 'bold'),textvariable=self.var_std_name)
-        studentname_entry.grid(row=0,column=3,padx=5,pady=3,sticky=W)
+        studentname_entry.grid(row=0,column=3,padx=5,pady=3,sticky='EW')
         
         class_div_label=Label(class_student_frame,text='Class Division :',font=('times new roman', 12, 'bold'),bg='white')
         class_div_label.grid(row=1,column=0,padx=5,sticky=W)
         div_combo=ttk.Combobox(class_student_frame,font=('times new roman', 12, 'bold'),textvariable=self.var_div,width=18,state='read')
         div_combo['values']=('A','B','C','D')
         div_combo.set('Select Division')
-        div_combo.grid(row=1,column=1,padx=5,pady=5,sticky=W)
+        div_combo.grid(row=1,column=1,padx=5,pady=5,sticky='EW')
         
         rollno_label=Label(class_student_frame,text='Roll NO :',font=('times new roman', 12, 'bold'),bg='white')
         rollno_label.grid(row=1,column=2,padx=5,sticky=W)
         rollno_entry=ttk.Entry(class_student_frame,width=20,font=('times new roman', 12, 'bold'),textvariable=self.var_roll)
-        rollno_entry.grid(row=1,column=3,padx=5,pady=3,sticky=W)
+        rollno_entry.grid(row=1,column=3,padx=5,pady=3,sticky='EW')
         
         gender_label=Label(class_student_frame,text='Gender :',font=('times new roman', 12, 'bold'),bg='white')
         gender_label.grid(row=2,column=0,padx=5,sticky=W)
         gender_combo=ttk.Combobox(class_student_frame,font=('times new roman', 12, 'bold'),textvariable=self.var_gender,width=18,state='read')
         gender_combo['values']=("Male",'Female','Other')
         gender_combo.set('Select Gender')
-        gender_combo.grid(row=2,column=1,padx=5,pady=5,sticky=W)
+        gender_combo.grid(row=2,column=1,padx=5,pady=5,sticky='EW')
 
-        dob_label = Label(class_student_frame,text='DOB (DD/MM/YYYY):',font=('times new roman', 10, 'bold'),bg='white',)
-        dob_label.place(x=310, y=70) 
-        dob_entry = ttk.Entry(class_student_frame,width=18,font=('times new roman', 12, 'bold'),textvariable=self.var_dob,)
-        dob_entry.place(x=437, y=70)
-        dob_btn = Button(class_student_frame,text="📅",font=("Segoe UI Emoji", 10),width=3,bg='red',fg='blue',activebackground='green',activeforeground='yellow',cursor="hand2",command=self.open_dob_calendar)
-        dob_btn.place(x=595, y=65)
+        dob_label = Label(class_student_frame,text='DOB (DD/MM/YYYY):',font=('times new roman', 10, 'bold'),bg='white')
+        dob_label.grid(row=2, column=2, padx=5, sticky=W)
+        dob_frame = Frame(class_student_frame, bg='white')
+        dob_frame.grid(row=2, column=3, padx=5, pady=3, sticky='EW')
+        dob_entry = ttk.Entry(dob_frame,width=14,font=('times new roman', 12, 'bold'),textvariable=self.var_dob)
+        dob_entry.pack(side=LEFT, fill=X, expand=True)
+        dob_btn = Button(dob_frame,text="📅",font=("Segoe UI Emoji", 10),width=3,bg='red',fg='blue',activebackground='green',activeforeground='yellow',cursor="hand2",command=self.open_dob_calendar)
+        dob_btn.pack(side=LEFT, padx=3)
 
         email_label=Label(class_student_frame,text='Email :',font=('times new roman', 12, 'bold'),bg='white')
         email_label.grid(row=3,column=0,padx=5,sticky=W)
         email_entry=ttk.Entry(class_student_frame,width=24,font=('times new roman', 10, 'bold'),textvariable=self.var_email)
-        email_entry.grid(row=3,column=1,padx=(3,2),pady=3,sticky=W)
+        email_entry.grid(row=3,column=1,padx=(3,2),pady=3,sticky='EW')
         
         phono_label=Label(class_student_frame,text='Phone NO :',font=('times new roman', 12, 'bold'),bg='white')
         phono_label.grid(row=3,column=2,padx=5,sticky=W)
         phono_entry=ttk.Entry(class_student_frame,width=20,font=('times new roman', 12, 'bold'),textvariable=self.var_phone)
-        phono_entry.grid(row=3,column=3,padx=5,pady=3,sticky=W)
+        phono_entry.grid(row=3,column=3,padx=5,pady=3,sticky='EW')
 
         telegram_label = Label(
             class_student_frame,
@@ -330,18 +354,18 @@ class students:
             font=('times new roman', 12, 'bold'),
             textvariable=self.var_telegram_id
         )
-        telegram_entry.grid(row=6, column=3, padx=5, pady=0, sticky=W)
+        telegram_entry.grid(row=6, column=3, padx=5, pady=0, sticky='EW')
 
         
         address_label=Label(class_student_frame,text='Address(City) :',font=('times new roman', 12, 'bold'),bg='white')
         address_label.grid(row=4,column=0,padx=5,sticky=W)
         address_entry=ttk.Entry(class_student_frame,width=20,font=('times new roman', 12, 'bold'),textvariable=self.var_address)
-        address_entry.grid(row=4,column=1,padx=5,pady=3,sticky=W)
+        address_entry.grid(row=4,column=1,padx=5,pady=3,sticky='EW')
         
         teacher_label=Label(class_student_frame,text='Teacher Name :',font=('times new roman', 12, 'bold'),bg='white')
         teacher_label.grid(row=4,column=2,padx=5,sticky=W)
         teacher_entry=ttk.Entry(class_student_frame,width=20,font=('times new roman', 12, 'bold'),textvariable=self.var_teacher)
-        teacher_entry.grid(row=4,column=3,padx=5,pady=3,sticky=W)
+        teacher_entry.grid(row=4,column=3,padx=5,pady=3,sticky='EW')
         
         self.var_radio1=StringVar()
         radiobutton1=ttk.Radiobutton(class_student_frame,variable=self.var_radio1,text='Have Photo Sample',value='yes')
@@ -350,64 +374,74 @@ class students:
         radiobutton2.grid(row=6,column=1,pady=(0,7))
 
         btn_frame=Frame(class_student_frame,bd=2,relief=RIDGE,bg='white')
-        btn_frame.place(x=0,y=190,width=635,height=32)
+        btn_frame.place(relx=0, rely=0.73, relwidth=1.0, relheight=0.12)
+        for i in range(4): btn_frame.columnconfigure(i, weight=1)
+        btn_frame.rowconfigure(0, weight=1)
 
-        save_btn=Button(btn_frame,text="Save",width=22,cursor='hand2',height=2,font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.add_data)
-        save_btn.grid(row=0,column=0)
-        update_btn=Button(btn_frame,text="Update",width=22,cursor='hand2',height=2,font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_data)
-        update_btn.grid(row=0,column=1)
-        delete_btn=Button(btn_frame,text="Delete",width=22,cursor='hand2',height=2,font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.delete_data)
-        delete_btn.grid(row=0,column=2)
-        reset_btn=Button(btn_frame,text="Reset",width=20,cursor='hand2',height=2,font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.reset_data)
-        reset_btn.grid(row=0,column=3)
+        save_btn=Button(btn_frame,text="Save",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.add_data)
+        save_btn.grid(row=0,column=0,sticky='NSEW')
+        update_btn=Button(btn_frame,text="Update",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_data)
+        update_btn.grid(row=0,column=1,sticky='NSEW')
+        delete_btn=Button(btn_frame,text="Delete",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.delete_data)
+        delete_btn.grid(row=0,column=2,sticky='NSEW')
+        reset_btn=Button(btn_frame,text="Reset",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.reset_data)
+        reset_btn.grid(row=0,column=3,sticky='NSEW')
 
         btn_frame1=Frame(class_student_frame,bd=2,relief=RIDGE,bg='white')
-        btn_frame1.place(x=0,y=225,width=635,height=35)
+        btn_frame1.place(relx=0, rely=0.84, relwidth=1.0, relheight=0.12)
+        for i in range(2): btn_frame1.columnconfigure(i, weight=1)
+        btn_frame1.rowconfigure(0, weight=1)
 
-        self.take_photo_btn=Button(btn_frame1,text="Take Photo Sample",width=45,height=2,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.photo_sample,padx=(1.9))
-        self.take_photo_btn.grid(row=1,column=0)
+        self.take_photo_btn=Button(btn_frame1,text="Take Photo Sample",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.photo_sample)
+        self.take_photo_btn.grid(row=0,column=0,sticky='NSEW')
 
-        self.update_photo_btn=Button(btn_frame1,text="Update Photo Sample",height=2,width=45,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_photosample)
-        self.update_photo_btn.grid(row=1,column=1)
+        self.update_photo_btn=Button(btn_frame1,text="Update Photo Sample",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_photosample)
+        self.update_photo_btn.grid(row=0,column=1,sticky='NSEW')
 
         right_frame=LabelFrame(main_frame,bd=2,bg='white',relief=RIDGE,text='Students Details',font=('times new roman', 12, 'bold'))
-        right_frame.place(x=665,y=10,width=645,height=480)
+        right_frame.place(relx=0.51, rely=0.02, relwidth=0.48, relheight=0.96)
         
         try:
-            img_right = Image.open("college_images\\student.jpg")
-            img_right = img_right.resize((635, 130), Image.Resampling.LANCZOS)
+            self.org_img_right = Image.open(resource_path("college_images\\student.jpg"))
+            img_right = self.org_img_right.resize((635, 130), Image.Resampling.LANCZOS)
             self.right_photoimg = ImageTk.PhotoImage(img_right)
-            f_lbl3 = Label(right_frame, image=self.right_photoimg)
-            f_lbl3.place(x=5, y=0, width=635, height=80)
+            self.f_lbl_right = Label(right_frame, image=self.right_photoimg)
+            self.f_lbl_right.place(relx=0.01, rely=0, relwidth=0.98, relheight=0.16)
         except:
             pass
 
         search_frame=LabelFrame(right_frame,bd=2,bg='white',relief=RIDGE,text='Search System',font=('times new roman', 12, 'bold'))
-        search_frame.place(x=5,y=85,width=635,height=55)
+        search_frame.place(relx=0.01, rely=0.17, relwidth=0.98, relheight=0.11)
+        search_frame.columnconfigure(0, weight=0)
+        search_frame.columnconfigure(1, weight=1)
+        search_frame.columnconfigure(2, weight=2)
+        for i in range(3, 7): search_frame.columnconfigure(i, weight=1)
+        search_frame.rowconfigure(0, weight=1)
+
         search_label=Label(search_frame,text='Search By :',font=('times new roman', 12, 'bold'),bg='red',fg='white')
-        search_label.grid(row=0,column=0,padx=5,sticky=W)
+        search_label.grid(row=0,column=0,padx=5,sticky='NSEW')
 
         search_combo=ttk.Combobox(search_frame,font=('times new roman', 12, 'bold'),width=12,state='read',textvariable=self.var_search_combo)
         search_combo['values'] = ('Student ID','Roll No','Student Name','Department','Phone No','Telegram ID','Gender','Year')
         search_combo.current(0)
         search_combo.set("Select Option")
-        search_combo.grid(row=0,column=1,padx=2,sticky=W)
+        search_combo.grid(row=0,column=1,padx=2,sticky='EW')
 
         search_entry = ttk.Entry(search_frame,width=15,font=('times new roman', 12, 'bold'),textvariable=self.var_search_entry)
-        search_entry.grid(row=0, column=2, padx=2, pady=3, sticky=W)
+        search_entry.grid(row=0, column=2, padx=2, pady=3, sticky='EW')
         search_entry.bind("<KeyRelease>", self.live_search)
 
-        reset_btn = Button(search_frame,text="Reset",width=8,cursor='hand2',font=('times new roman', 10, 'bold'),bg='green',fg='white',activebackground="red",activeforeground='green',command=self.reset_search)
-        reset_btn.grid(row=0, column=3, padx=2)
-        showall_btn=Button(search_frame,text="Refresh",width=8,cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=lambda: self.refresh_animation(self.fetch_data))
-        showall_btn.grid(row=0,column=4,padx=2)
-        Button(search_frame,text="Filter",font=("times new roman", 10, "bold"),bg="purple",fg="white",cursor='hand2',activebackground="#5d57b4",activeforeground='black',width=8,command=self.open_student_filter).grid(row=0,column=5,padx=2)
+        reset_btn = Button(search_frame,text="Reset",cursor='hand2',font=('times new roman', 10, 'bold'),bg='green',fg='white',activebackground="red",activeforeground='green',command=self.reset_search)
+        reset_btn.grid(row=0, column=3, padx=2, sticky='NSEW')
+        showall_btn=Button(search_frame,text="Refresh",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=lambda: self.refresh_animation(self.fetch_data))
+        showall_btn.grid(row=0,column=4,padx=2,sticky='NSEW')
+        Button(search_frame,text="Filter",font=("times new roman", 10, "bold"),bg="purple",fg="white",cursor='hand2',activebackground="#5d57b4",activeforeground='black',command=self.open_student_filter).grid(row=0,column=5,padx=2,sticky='NSEW')
         
         # EXPORT Button
-        Button(search_frame, text="Export", font=("times new roman", 10, "bold"), bg="orange", fg="white", cursor='hand2', activebackground="red", activeforeground='green', width=8, command=self.export_data).grid(row=0, column=6, padx=2)
+        Button(search_frame, text="Export", font=("times new roman", 10, "bold"), bg="orange", fg="white", cursor='hand2', activebackground="red", activeforeground='green', command=self.export_data).grid(row=0, column=6, padx=2, sticky='NSEW')
 
         table_frame=Frame(right_frame,bd=2,bg='white',relief=RIDGE)
-        table_frame.place(x=5,y=140,width=635,height=310)
+        table_frame.place(relx=0.01, rely=0.29, relwidth=0.98, relheight=0.69)
 
         scroll_x=ttk.Scrollbar(table_frame,orient=HORIZONTAL)
         scroll_y=ttk.Scrollbar(table_frame,orient=VERTICAL)
@@ -617,39 +651,39 @@ class students:
             messagebox.showerror("Error","Please enter a valid Phone No with 10 digits",parent=self.root)
         elif self.var_roll.get().isdigit()==False:
             messagebox.showerror("Error","Please enter a valid Roll Number only digits are allowed",parent=self.root)
-        elif not self.va_std_id.get().isdigit:
+        elif not self.va_std_id.get().isdigit():
             messagebox.showerror("Error","Please enter a valid Student Id only digits are allowed",parent=self.root)
 
         else:
-            try:
-                conn=mysql.connector.connect(host='localhost',port=3307,username='root',password='1582',database='face_recognizer')
-                my_cursor=conn.cursor()
-                my_cursor.execute(
-                'insert into student values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',(
-                self.var_dep.get(),
-                self.var_course.get(),
-                self.var_year.get(),
-                self.var_semester.get(),
-                self.va_std_id.get(),
-                self.var_std_name.get(),
-                self.var_div.get(),
-                self.var_roll.get(),
-                self.var_gender.get(),
-                self.var_dob.get(),
-                self.var_email.get(),
-                self.var_phone.get(),
-                self.var_address.get(),
-                self.var_teacher.get(),
-                self.var_radio1.get(),
-                self.var_telegram_id.get()   
-            ))
+                try:
+                    conn=get_db_connection()
+                    my_cursor=conn.cursor()
+                    my_cursor.execute(
+                    'insert into student values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',(
+                    self.var_dep.get(),
+                    self.var_course.get(),
+                    self.var_year.get(),
+                    self.var_semester.get(),
+                    self.va_std_id.get(),
+                    self.var_std_name.get(),
+                    self.var_div.get(),
+                    self.var_roll.get(),
+                    self.var_gender.get(),
+                    self.var_dob.get(),
+                    self.var_email.get(),
+                    self.var_phone.get(),
+                    self.var_address.get(),
+                    self.var_teacher.get(),
+                    self.var_radio1.get(),
+                    self.var_telegram_id.get()   
+                ))
 
-                conn.commit()
-                self.fetch_data()
-                conn.close()
-                messagebox.showinfo("Succes",'Student details has been added Succesfully',parent=self.root)
-            except Exception as e:
-                messagebox.showerror('Error',f'Student details failed to be added due to {str(e)}',parent=self.root)
+                    conn.commit()
+                    self.fetch_data()
+                    conn.close()
+                    messagebox.showinfo("Succes",'Student details has been added Succesfully',parent=self.root)
+                except Exception as e:
+                    messagebox.showerror('Error',f'Student details failed to be added due to {str(e)}',parent=self.root)
 
     def refresh_animation(self, reload_callback):
         # Disable UI briefly (optional visual effect)
@@ -670,7 +704,7 @@ class students:
         self.root.config(cursor="")
 
     def fetch_data(self):
-        conn = mysql.connector.connect(host='localhost',port=3307, username='root', password='1582', database='face_recognizer')
+        conn = get_db_connection()
         my_cursor = conn.cursor()  
         my_cursor.execute('select * from student')
         data = my_cursor.fetchall()
@@ -734,8 +768,8 @@ class students:
             self.take_photo_btn.config(state="disabled")
             self.update_photo_btn.config(state="normal")
         else:
-            self.take_photo_btn.config(state="disabled")
-            self.update_photo_btn.config(state="normal")
+            self.take_photo_btn.config(state="normal")
+            self.update_photo_btn.config(state="disabled")
 
     def update_data(self):
         email = self.var_email.get()
@@ -747,14 +781,14 @@ class students:
             messagebox.showerror("Error","Please enter a valid Phone No with 10 digits",parent=self.root)
         elif self.var_roll.get().isdigit()==False:
             messagebox.showerror("Error","Please enter a valid Roll Number only digits are allowed",parent=self.root)
-        elif not self.va_std_id.get().isdigit:
+        elif not self.va_std_id.get().isdigit():
             messagebox.showerror("Error","Please enter a valid Student Id only digits are allowed",parent=self.root)
         
         else:
             try:
                 update=messagebox.askyesno("Update",'Do you want to update data',parent=self.root)
                 if update>0:
-                    conn=mysql.connector.connect(host='localhost',port=3307,username='root',password='1582',database='face_recognizer')
+                    conn=get_db_connection()
                     my_cursor=conn.cursor()
                     my_cursor.execute('update student set Dep=%s,Course=%s,Year=%s,Semester=%s,Student_name=%s,Division=%s,Roll=%s,Gender=%s,Dob=%s,Email=%s,Phone=%s,Address=%s,Teacher=%s,PhotoSample=%s,TelegramID=%s where Student_id=%s',(
                                 self.var_dep.get(),self.var_course.get(),self.var_year.get(),self.var_semester.get(),
@@ -778,7 +812,7 @@ class students:
             try:
                 delete=messagebox.askyesno("Delete",'Do you want to delete data',parent=self.root)
                 if delete>0:
-                    conn=mysql.connector.connect(host='localhost',port=3307,username='root',password='1582',database='face_recognizer')
+                    conn=get_db_connection()
                     my_cursor=conn.cursor()
                     sql='delete from student where Student_id=%s'
                     val=(self.va_std_id.get(),)
@@ -812,7 +846,7 @@ class students:
         column = column_map.get(search_by)
         if not column: return
         try:
-            conn = mysql.connector.connect(host="localhost", port=3307,username="root", password="1582",database="face_recognizer")
+            conn = get_db_connection()
             cursor = conn.cursor()
             query = f"SELECT * FROM student WHERE {column} LIKE %s"
             cursor.execute(query, (f"%{keyword}%",))
@@ -838,7 +872,7 @@ class students:
         win.grab_set()
 
         try:
-            win.iconbitmap('college_images\\bg1.ico')
+            win.iconbitmap(resource_path('college_images\\bg1.ico'))
         except:
             pass
 
@@ -902,11 +936,7 @@ class students:
                 query += " WHERE " + " AND ".join(clauses)
 
             try:
-                conn = mysql.connector.connect(
-                    host="localhost", port=3307,
-                    username="root", password="1582",
-                    database="face_recognizer"
-                )
+                conn = get_db_connection()
                 cur = conn.cursor()
                 cur.execute(query, tuple(values))
                 rows = cur.fetchall()
@@ -985,38 +1015,56 @@ class students:
             messagebox.showerror("Error","Please enter a valid Student Id only digits are allowed",parent=self.root)
         else:
             try:
-                 conn=mysql.connector.connect(host='localhost',port=3307,username='root',password='1582',database='face_recognizer')
+                 # Check if data directory exists
+                 import os
+                 if not os.path.exists("data"):
+                     os.makedirs("data", exist_ok=True)
+
+                 conn=get_db_connection()
                  my_cursor=conn.cursor()
                  my_cursor.execute('select * from student')
                  myresult=my_cursor.fetchall()
-                 id=0
-                 for x in myresult: id+=1
-                 my_cursor.execute('update student set Dep=%s,Course=%s,Year=%s,Semester=%s,Student_name=%s,Division=%s,Roll=%s,Gender=%s,Dob=%s,Email=%s,Phone=%s,Address=%s,Teacher=%s,PhotoSample=%s where Student_id=%s',(
-                                self.var_dep.get(),self.var_course.get(),self.var_year.get(),self.var_semester.get(),
-                                self.var_std_name.get(),self.var_div.get(),self.var_roll.get(),self.var_gender.get(),
-                                self.var_dob.get(),self.var_email.get(),self.var_phone.get(),self.var_address.get(),
-                                self.var_teacher.get(),self.var_radio1.get(),self.va_std_id.get()))
-                 conn.commit()
-                 self.fetch_data()
-                 self.reset_data()
+                 # Bug 1 Fix: Use actual student ID instead of row count
+                 id = self.va_std_id.get() 
                  conn.close()
 
-                 face_classifier=cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
-                 
+                 # Bug 3 Fix: Use resource_path for haarcascade
+                 try:
+                     face_classifier = cv2.CascadeClassifier(resource_path("haarcascade_frontalface_default.xml"))
+                 except Exception as e:
+                     messagebox.showerror("Error", f"Failed to load haarcascade: {e}", parent=self.root)
+                     return
+
                  def face_cropped(img):
                      gray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
                      faces=face_classifier.detectMultiScale(gray,1.3,5)
+                     
+                     # Bug 5 & 8 Fix: Handle multiple faces and size validation
+                     if len(faces) != 1:
+                         return None # Only accept single face
+                         
                      for (x,y,w,h) in faces:
+                         # Minimum size validation
+                         if w < 100 or h < 100: 
+                             return None
                          face_cropped=img[y:y+h,x:x+w]
                          return face_cropped
+                     return None
                  
                  cap=cv2.VideoCapture(1)
                  img_id=0
+                 captured_successfully = False
+                 
                  while True:
                          ret,my_frame=cap.read()
-                         if face_cropped(my_frame) is not None:
+                         # Bug 6 Fix: Frame read validation
+                         if not ret:
+                             continue
+                             
+                         cropped_face = face_cropped(my_frame)
+                         if cropped_face is not None:
                              img_id+=1
-                             face_raw=cv2.resize(face_cropped(my_frame),(450,450))
+                             face_raw=cv2.resize(cropped_face,(450,450))
                              
                              # SAVE 5th IMAGE AS COLOR, REST AS GRAY
                              if img_id == 5:
@@ -1024,15 +1072,34 @@ class students:
                              else:
                                  face = cv2.cvtColor(face_raw, cv2.COLOR_BGR2GRAY)
 
-                             file_name_path='data/user.'+str(id)+"."+str(img_id)+'.jpg'
+                             file_name_path=resource_path('data/user.'+str(id)+"."+str(img_id)+'.jpg')
                              cv2.imwrite(file_name_path,face)
                              cv2.putText(face,str(img_id),(50,50),cv2.FONT_HERSHEY_COMPLEX,2,(0,255,0),2)
                              cv2.imshow('Cropped Face',face)
+                             
                          if cv2.waitKey(1)==13 or int(img_id)==100:
+                             captured_successfully = (int(img_id) == 100)
                              break
                  cap.release()
                  cv2.destroyAllWindows()
-                 messagebox.showinfo('Result','Generating data sets completed succesfully',parent=self.root)
+                 
+                 # Bug 10 Fix: Update database ONLY after successful capture
+                 if captured_successfully:
+                     conn=get_db_connection()
+                     my_cursor=conn.cursor()
+                     my_cursor.execute('update student set Dep=%s,Course=%s,Year=%s,Semester=%s,Student_name=%s,Division=%s,Roll=%s,Gender=%s,Dob=%s,Email=%s,Phone=%s,Address=%s,Teacher=%s,PhotoSample=%s where Student_id=%s',(
+                                    self.var_dep.get(),self.var_course.get(),self.var_year.get(),self.var_semester.get(),
+                                    self.var_std_name.get(),self.var_div.get(),self.var_roll.get(),self.var_gender.get(),
+                                    self.var_dob.get(),self.var_email.get(),self.var_phone.get(),self.var_address.get(),
+                                    self.var_teacher.get(),self.var_radio1.get(),self.va_std_id.get()))
+                     conn.commit()
+                     conn.close()
+                     self.fetch_data()
+                     self.reset_data()
+                     messagebox.showinfo('Result','Generating data sets completed succesfully',parent=self.root)
+                 else:
+                     messagebox.showwarning("Incomplete", "Photo capture incomplete. Database not updated.", parent=self.root)
+
             except Exception as e:
                 messagebox.showerror('Error',f' Generating dataset is failed due to {str(e)}',parent=self.root)
 
@@ -1041,7 +1108,11 @@ class students:
             messagebox.showerror("Error", "All Fields are required", parent=self.root)
             return
         try:
-            conn = mysql.connector.connect(host="localhost",port=3307, username="root", password="1582", database="face_recognizer")
+            import os
+            if not os.path.exists("data"):
+                os.makedirs("data", exist_ok=True)
+                
+            conn = get_db_connection()
             my_cursor = conn.cursor()
             student_id = self.va_std_id.get()
             my_cursor.execute("SELECT * FROM student WHERE Student_id=%s", (student_id,))
@@ -1052,20 +1123,32 @@ class students:
                 messagebox.showerror("Error", "Student ID not found", parent=self.root)
                 return
 
-            face_classifier = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+            face_classifier = cv2.CascadeClassifier(resource_path("haarcascade_frontalface_default.xml"))
+            
             def face_cropped(img):
                 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 faces = face_classifier.detectMultiScale(gray, 1.3, 5)
+                
+                if len(faces) != 1:
+                    return None
+                    
                 for (x, y, w, h) in faces:
+                    if w < 100 or h < 100:
+                        return None
                     return img[y:y+h, x:x+w]
+                return None
 
             cap = cv2.VideoCapture(1)
             img_id = 0
             while True:
                 ret, frame = cap.read()
-                if face_cropped(frame) is not None:
+                if not ret:
+                    continue
+                    
+                cropped = face_cropped(frame)
+                if cropped is not None:
                     img_id += 1
-                    face_raw = cv2.resize(face_cropped(frame), (450, 450))
+                    face_raw = cv2.resize(cropped, (450, 450))
                     
                     # SAVE 5th IMAGE AS COLOR, REST AS GRAY
                     if img_id == 5:
@@ -1073,7 +1156,7 @@ class students:
                     else:
                         face = cv2.cvtColor(face_raw, cv2.COLOR_BGR2GRAY)
                     
-                    file_path = f"data/user.{student_id}.{img_id}.jpg"
+                    file_path = resource_path(f"data/user.{student_id}.{img_id}.jpg")
                     cv2.imwrite(file_path, face)
                     cv2.putText(face, str(img_id), (50, 50), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 255, 0), 2)
                     cv2.imshow("Cropped Face", face)
@@ -1209,6 +1292,71 @@ class students:
         current_time = strftime('%I:%M:%S %p')
         self.time_lbl.config(text=current_time)
         self.time_lbl.after(1000, self.update_time) 
+
+    # ================== RESIZING LOGIC ==================
+    def on_resize(self, event):
+        """Variable delay to prevent lag while dragging"""
+        if event.widget == self.root:
+            if self.resize_timer:
+                self.root.after_cancel(self.resize_timer)
+            self.resize_timer = self.root.after(100, self.update_layout_images)
+
+    def update_layout_images(self):
+        """Resizes background and header images and handles Z-order"""
+        # Get current dimensions
+        win_w = self.root.winfo_width()
+        win_h = self.root.winfo_height()
+        
+        if win_w < 100 or win_h < 100: return
+        
+        # 1. Header Images
+        h_h = int(win_h * 0.191)
+        h_w_1 = int(win_w * 0.333)
+        h_w_3 = int(win_w * 0.334) # Remainder
+        
+        # Helper to update label image
+        def update_img(lbl, orig, w, h):
+            if w<=0 or h<=0: return
+            try:
+                resized = orig.resize((w, h), Image.Resampling.LANCZOS)
+                photo = ImageTk.PhotoImage(resized)
+                lbl.config(image=photo)
+                lbl.image = photo 
+            except Exception as e:
+                pass
+            
+        if hasattr(self, 'h_lbl1') and hasattr(self, 'org_img_h1'):
+            update_img(self.h_lbl1, self.org_img_h1, h_w_1, h_h)
+        if hasattr(self, 'h_lbl2') and hasattr(self, 'org_img_h2'):
+            update_img(self.h_lbl2, self.org_img_h2, h_w_1, h_h)
+        if hasattr(self, 'h_lbl3') and hasattr(self, 'org_img_h3'):
+            update_img(self.h_lbl3, self.org_img_h3, h_w_3, h_h)
+        
+        # 2. Background Image
+        bg_h = int(win_h * 0.809)
+        if hasattr(self, 'bg_lbl') and hasattr(self, 'org_img_bg'):
+            update_img(self.bg_lbl, self.org_img_bg, win_w, bg_h)
+        
+        # 3. Inner Frame Images (left and right panels)
+        for lbl_attr, img_attr in [('f_lbl_left', 'org_img_left'), ('f_lbl_right', 'org_img_right')]:
+            if hasattr(self, lbl_attr) and hasattr(self, img_attr):
+                try:
+                    lbl = getattr(self, lbl_attr)
+                    lbl.update_idletasks()
+                    lw = lbl.winfo_width()
+                    lh = lbl.winfo_height()
+                    if lw > 10 and lh > 10:
+                        update_img(lbl, getattr(self, img_attr), lw, lh)
+                except:
+                    pass
+            
+        # 3. Z-Order Lifting (Critical for visibility)
+        if hasattr(self, 'title_lbl'): self.title_lbl.lift()
+        if hasattr(self, 'time_lbl'): self.time_lbl.lift()
+        if hasattr(self, 'back_btn_frame'): self.back_btn_frame.lift()
+        
+        # Force a redraw
+        self.root.update_idletasks()
 
 if __name__ == '__main__':
     root=Tk()

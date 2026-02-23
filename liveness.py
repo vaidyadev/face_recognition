@@ -3,14 +3,16 @@ import numpy as np
 import time
 import random
 
+from utils import resource_path
+
 class LivenessDetector:
     def __init__(self):
         # Load face detector
-        self.face_detector = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        self.face_detector = cv2.CascadeClassifier(resource_path('haarcascade_frontalface_default.xml'))
         # Load eye detector
-        self.eye_detector = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
+        self.eye_detector = cv2.CascadeClassifier(resource_path('haarcascade_eye.xml'))
         # Load smile detector
-        self.smile_detector = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_smile.xml')
+        self.smile_detector = cv2.CascadeClassifier(resource_path('haarcascade_smile.xml'))
         
         # Challenge states
         self.challenge_active = False
@@ -112,7 +114,7 @@ class LivenessDetector:
         variance = laplacian.var()
         
         # Threshold for texture variation (adjust based on testing)
-        return variance >50  # Higher threshold for clearer distinction
+        return variance >10  # Higher threshold for clearer distinction
     
     def detect_reflections(self, face_region):
         """Detect light reflections that would be present on a real face but not on a photo"""
@@ -133,8 +135,34 @@ class LivenessDetector:
         reflection_percentage = reflection_pixels / total_pixels * 100
         
         # Real faces typically have some natural light reflections
-        return 0.1 < reflection_percentage <30  # Adjust thresholds as needed
+        return 0.1 < reflection_percentage <100  # Adjust thresholds as needed
     
+    def check_frequency_patterns(self, face_region):
+        """Analyze frequency domain for spoof detection using Fourier Transform
+        Real faces have different high-frequency component distribution compared to photos.
+        """
+        try:
+            # Convert to grayscale
+            if len(face_region.shape) > 2:
+                gray = cv2.cvtColor(face_region, cv2.COLOR_BGR2GRAY)
+            else:
+                gray = face_region
+                
+            # Perform FFT
+            f = np.fft.fft2(gray)
+            fshift = np.fft.fftshift(f)
+            magnitude_spectrum = 20 * np.log(np.abs(fshift))
+            
+            # Calculate mean magnitude (simple metric for blurriness/surface texture)
+            mean_magnitude = np.mean(magnitude_spectrum)
+            
+            # Real faces usually have higher detailed frequency components than printed photos (which might look smoothed or have Moiré patterns)
+            # Threshold needs calibration, but usually > 150 for clear real faces in good lighting
+            return mean_magnitude > 100 
+            
+        except Exception:
+            return False
+
     def issue_challenge(self):
         """Issue a random liveness challenge to the user"""
         challenges = ["blink", "move_head", "smile"]
@@ -219,10 +247,14 @@ class LivenessDetector:
         
         # Run static checks first
         texture_check = self.check_texture_variation(face_region)
+        # texture_check = True
         reflection_check = self.detect_reflections(face_region)
+        # reflection_check = True
+        frequency_check = self.check_frequency_patterns(face_region)
+        # frequency_check=True
         
         # If static checks pass, proceed to challenges
-        if texture_check and reflection_check:
+        if texture_check and reflection_check and frequency_check:
             if not self.challenge_active and not self.challenge_completed:
                 # Issue a new challenge
                 challenge = self.issue_challenge()
@@ -241,7 +273,11 @@ class LivenessDetector:
                 is_live = True
                 message = "Liveness confirmed!"
         else:
-            if not texture_check and not reflection_check:
+            if not texture_check and not reflection_check and not frequency_check:
+                message = "Failed all static checks - likely a photo"
+            elif not frequency_check:
+                 message = "Failed frequency analysis - likely a screen/photo"
+            elif not texture_check and not reflection_check:
                 message = "Failed texture and reflection checks - likely a photo"
             elif not texture_check:
                 message = "Failed texture check - likely a photo"

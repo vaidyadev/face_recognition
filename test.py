@@ -3,7 +3,12 @@ from google import genai
 from google.genai import types
 import time
 # 1. Setup your API Key
-client = genai.Client(api_key='AIzaSyDkmTUS7YoGTj1sukc9pwSAUhdeK--ePz8')
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 def generate_from_image(image_path, prompt):
     print(f"\n--- Testing Image + Text (Multimodal) ---")
@@ -75,7 +80,7 @@ except Exception as e:
 from google import genai
 from google.genai import types
 
-client = genai.Client(api_key='AIzaSyDkmTUS7YoGTj1sukc9pwSAUhdeK--ePz8')
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 grounding_tool = types.Tool(
     google_search=types.GoogleSearch()

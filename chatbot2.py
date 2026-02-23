@@ -8,6 +8,7 @@ import json
 import re
 from modules import database, ai_chat, history, audio, syntax_highlighter, ui_utils, ui_layout
 from modules.settings_manager import SettingsManager
+from utils import resource_path
 
 class ChatBot:
 
@@ -35,8 +36,10 @@ class ChatBot:
             # Settings Callbacks
         # Settings Callbacks
             'get_current_language': lambda: self.settings_manager.get("language", "en"),
-            'get_current_model': lambda: self.settings_manager.get("model", "tngtech/deepseek-r1t2-chimera:free"),
+            'get_current_model': lambda: self.settings_manager.get("model", "openai/gpt-oss-120b:free"),
             'get_current_theme': lambda: self.settings_manager.get("theme_mode", "System Default"),
+            'get_reasoning_enabled': lambda: self.settings_manager.get("reasoning_enabled", True),
+            'get_thinking_budget': lambda: self.settings_manager.get("thinking_budget", 1024),
             'save_settings': self.save_settings_callback,
             'show_help': self.show_help,
             'open_settings': self.open_settings_current,
@@ -67,7 +70,9 @@ class ChatBot:
         self.root.bind('<Control-w>', lambda e: self.ui.toggle_search_button())
         self.root.bind('<Control-comma>', lambda e: self.open_settings_current())
         
-        self.history_file = "chat_history.json"
+        self.root.protocol("WM_DELETE_WINDOW", self.back)
+        
+        self.history_file = resource_path("chat_history.json")
         
         
         self.history_data = history.load_history(self.history_file)
@@ -90,7 +95,7 @@ class ChatBot:
         self.ui.render_welcome_cards(self.handle_card_click)
         
         # Initialize cache
-        self.cache_file = "response_cache.json"
+        self.cache_file = resource_path("response_cache.json")
         self.response_cache = ai_chat.load_cache(self.cache_file)
         
         # Sticky Gemini State
@@ -111,7 +116,7 @@ class ChatBot:
         self.search_enabled = False
         
         self.render_history()
-        self.show_startup_tip()
+        # self.show_startup_tip()
         # self.show_help()
 
     def _get_system_theme(self):
@@ -154,7 +159,7 @@ class ChatBot:
     def show_startup_tip(self):
         message = (
             "🤖 **Model Usage Instructions** 🤖\n\n"
-            "🔹 **R1 (DeepSeek-R1)**: Use for general chat, coding,searching,and reasoning tasks.\n"
+            "🔹 **gpt-oss-120b**: Use for general chat, coding,searching,and reasoning tasks.\n"
             "🔹 **SeedDream**: Use for editing and creating images.\n"
             "🔹 **Gemini**: Use for analyzing documents and uploaded photos to get information about their content.\n\n"
             "⌨️ **Shortcuts**:\n"
@@ -175,14 +180,13 @@ class ChatBot:
     def handle_card_click(self, prompt):
         self.ui.entry.delete("1.0", END)
         self.ui.entry.insert("1.0", prompt)
-        self.ui.entry.insert("1.0", prompt)
         self._reset_entry_style()
         self.ui.entry.focus_set()
 
     def show_help(self):
         help_text = (
             "🤖 **Model Usage Instructions** 🤖\n\n"
-            "🔹 **R1 (DeepSeek-R1)**: Use for general chat, coding,searching,and reasoning tasks.\n"
+            "🔹 **gpt-oss-120b**: Use for general chat, coding,searching,and reasoning tasks.\n"
             "🔹 **SeedDream**: Use for editing and creating images.\n"
             "🔹 **Gemini**: Use for analyzing documents and uploaded photos to get information about their content.\n\n"
             "⌨️ **Shortcuts**:\n"
@@ -220,6 +224,7 @@ class ChatBot:
         self.apply_theme(new_mode)
 
     def back(self):
+        audio.stop_speech()
         self.root.destroy()
 
     def rename_session(self, index):
@@ -242,7 +247,7 @@ class ChatBot:
         dialog = Toplevel(self.root)
         dialog.title("Rename Chat")
         dialog.geometry("400x180")
-        dialog.wm_iconbitmap('assets/chat.ico')
+        dialog.wm_iconbitmap(resource_path('assets/chat.ico'))
         dialog.config(bg=bg_color)
         dialog.resizable(False, False)
         
@@ -297,6 +302,28 @@ class ChatBot:
             self.root.clipboard_clear()
             self.root.clipboard_append(selected_text)
             self.ui.text.config(state='disabled')
+            
+            # Show floating "Copied!" indicator
+            x = self.root.winfo_pointerx()
+            y = self.root.winfo_pointery()
+            
+            float_copy = Toplevel(self.root)
+            float_copy.wm_overrideredirect(True)
+            float_copy.geometry(f"+{x+10}+{y+10}")
+            float_copy.attributes("-topmost", True)
+            
+            is_dark = getattr(self.ui, 'is_dark', False)
+            bg_color = "#4CAF50" # Green
+            fg_color = "white"
+            
+            float_copy.config(bg=bg_color)
+            
+            lbl = Label(float_copy, text="✔ Copied!", font=("Arial", 9, "bold"), 
+                       bg=bg_color, fg=fg_color, padx=8, pady=4)
+            lbl.pack()
+            
+            self.root.after(1500, float_copy.destroy)
+            
         except Exception:
             messagebox.showinfo("Copy", "No text selected!", parent=self.root)
 
@@ -359,12 +386,46 @@ class ChatBot:
             messagebox.showinfo("Speak Selected", "No text selected!", parent=self.root)
             return
 
-        if not selected_text:
-            messagebox.showinfo("Speak Selected", "No text selected!", parent=self.root)
-            return
-
         selected_lang_code = self.settings_manager.get("language", "en")
-        self.toggle_speech(selected_text, None) 
+        
+        audio.stop_speech()
+        
+        x = self.root.winfo_pointerx()
+        y = self.root.winfo_pointery()
+        
+        floating_win = Toplevel(self.root)
+        floating_win.wm_overrideredirect(True)
+        floating_win.geometry(f"+{x+15}+{y+15}")
+        floating_win.attributes("-topmost", True)
+        floating_win.config(bg="#4285F4")
+        
+        floating_btn = Button(floating_win, text="⏹️ Stop Speaking", font=("Arial", 10, "bold"),
+                          bg="#4285F4", fg="white", activebackground="#3367D6", activeforeground="white",
+                          bd=0, cursor="hand2", padx=10, pady=5)
+        floating_btn.pack()
+        
+        self.current_speaking_btn = floating_btn
+        
+        def on_floating_stop():
+            audio.stop_speech()
+            try:
+                floating_win.destroy()
+            except:
+                pass
+            if self.current_speaking_btn == floating_btn:
+                self.current_speaking_btn = None
+                
+        floating_btn.config(command=on_floating_stop)
+        
+        def on_floating_complete():
+            try:
+                floating_win.destroy()
+            except:
+                pass
+            if self.current_speaking_btn == floating_btn:
+                self.current_speaking_btn = None
+                
+        audio.speak_text_gtts(selected_text, selected_lang_code, self.root, on_finish=on_floating_complete)
 
     def toggle_speech(self, text, btn):
         # 1. Stop current
@@ -739,7 +800,7 @@ class ChatBot:
                 
                 
                 # Default model
-                model_name = self.settings_manager.get("model", "tngtech/deepseek-r1t2-chimera:free")
+                model_name = self.settings_manager.get("model", "openai/gpt-oss-120b:free")
                 
                 # Get Search State
                 search_enabled = self.ui.search_active
@@ -748,27 +809,40 @@ class ChatBot:
                 has_image = any(os.path.splitext(f)[1].lower() in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico'] for f in current_attachments)
                 
                 if current_attachments and has_image and ("edit" in user_input or "make changes" in user_input):
-                     messagebox.showinfo("Information", f"Auto-switching to SeedDream for Image Editing")
+                     messagebox.showinfo("Information", f"Auto-switching to SeedDream for Image Editing",parent=self.root)
                      model_name = "bytedance-seed/seedream-4.5"
+                     self.sticky_seedream_turns = 3
                      self.sticky_gemini_turns = 0
                      self.gemini_chat_session = None
                      
                 elif current_attachments:
-                    messagebox.showinfo("Information", f"Auto-switching to Gemini due to attachments (Sticky for 3 turns)")
-                    model_name = "gemini-2.5-flash-lite"
+                    messagebox.showinfo("Information", f"Auto-switching to Gemini due to attachments (Sticky for 3 turns)",parent=self.root)
+                    model_name = "gemini-2.5-flash"
                     self.sticky_gemini_turns = 3
+                    if hasattr(self, 'sticky_seedream_turns'): self.sticky_seedream_turns = 0
                 
                 elif self.sticky_gemini_turns > 0:
-                     model_name = "gemini-2.5-flash-lite-preview-09-2025"
+                     model_name = "gemini-2.5-flash"
                      # Decrement unless reset by new attachment
                      self.sticky_gemini_turns -= 1
+                     if hasattr(self, 'sticky_seedream_turns'): self.sticky_seedream_turns = 0
                      if self.sticky_gemini_turns == 0:
                          print("DEBUG: Sticky Gemini mode ended.")
                 
                 elif "generate" in user_input or "make image" in user_input:
-                    messagebox.showinfo("Information", f"Auto-switching to SeedDream due to keywords")
+                    messagebox.showinfo("Information", f"Auto-switching to SeedDream due to keywords (Sticky for 3 turns)",parent=self.root)
                     model_name = "bytedance-seed/seedream-4.5"
+                    self.sticky_seedream_turns = 3
+                    self.sticky_gemini_turns = 0
                     self.gemini_chat_session = None
+                    
+                elif hasattr(self, 'sticky_seedream_turns') and self.sticky_seedream_turns > 0:
+                     model_name = "bytedance-seed/seedream-4.5"
+                     self.sticky_seedream_turns -= 1
+                     self.sticky_gemini_turns = 0
+                     self.gemini_chat_session = None
+                     if self.sticky_seedream_turns == 0:
+                         print("DEBUG: Sticky Seedream mode ended.")
                 
                 else:
                     # Default model - clear gym session if switching naturally?
@@ -777,6 +851,10 @@ class ChatBot:
                          self.gemini_chat_session = None
 
                 
+                # Get Reasoning Preference
+                reasoning_enabled = self.settings_manager.get("reasoning_enabled", True)
+                thinking_budget = self.settings_manager.get("thinking_budget", 1024)
+
                 # Execute Request
                 if 'gemini' in model_name.lower():
                      # Use Sticky Session if possible
@@ -790,7 +868,9 @@ class ChatBot:
                          self.gemini_chat_session, 
                          user_input, 
                          attachments=current_attachments,
-                         search_enabled=search_enabled
+                         search_enabled=search_enabled,
+                         reasoning_enabled=reasoning_enabled,
+                         thinking_budget=thinking_budget
                      )
                 else:
                     response = ai_chat.ask_openai(
@@ -800,7 +880,9 @@ class ChatBot:
                         self.cache_file, 
                         attachments=current_attachments, 
                         model_name=model_name,
-                        search_enabled=search_enabled
+                        search_enabled=search_enabled,
+                        reasoning_enabled=reasoning_enabled,
+                        thinking_budget=thinking_budget
                     )
                 
                 # Schedule UI update on main thread

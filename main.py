@@ -16,7 +16,7 @@ from datetime import datetime
 from chatbot2 import ChatBot
 import pyttsx3
 from devloper import developer
-from chatbot2 import ChatBot
+from utils import resource_path
 
 
 
@@ -24,169 +24,230 @@ class face_recog:
     def __init__(self, root):
         self.root = root
         self.root.geometry("1360x680+0+10")
-        # self.root.geometry("1530x790+0+0")
         self.root.title("Face Recognition System")
-        # self.root.overrideredirect(True)
-        self.root.resizable(False, False)
-        self.root.wm_iconbitmap('college_images\\bg1.ico')
+        self.root.resizable(True, True)  # Make window resizable
+        self.root.minsize(1024, 600)     # Set reasonable minimum size
+        self.root.wm_iconbitmap(resource_path('college_images\\bg1.ico'))
+        
+        # Initialize Audio
         engine = pyttsx3.init()
         voices = engine.getProperty('voices')
-        engine.setProperty('rate',150) 
-        engine.setProperty('volume', 1.0)  
-        engine.setProperty('voice',voices[1].id)
+        engine.setProperty('rate', 150)
+        engine.setProperty('volume', 1.0)
+        try:
+            engine.setProperty('voice', voices[1].id)
+        except:
+            pass # Fallback if voice index out of bounds
+            
         self.time_after_id = None
         self.slider_after_id = None
-        engine.say("welcome to facial recognition attendance system please put your internet on and you must have webcam and SQL Database!!")
-        engine.runAndWait()
-        tkinter.messagebox.showwarning('Note','This application required stable internet connection and webcam and SQL Database',parent=self.root)
         
+        # Initial greeting and warning
+        # (Running in thread to not block UI startup if it takes time)
+        threading.Thread(target=self.initial_voice_greeting, args=(engine,), daemon=True).start()
+        
+        # Debounce timer for resizing
+        self.resize_timer = None
 
-        # Define the scrolling text string here
-        self.text = ''
-        self.count = 0
-        self.s = "FACE RECOGNITION ATTENDENCE SYSTEM "
+        # --- LOAD IMAGES (Store Originals for Resizing) ---
+        self.org_img_h1 = Image.open(resource_path("college_images\\Stanford.jpg"))
+        self.org_img_h2 = Image.open(resource_path("college_images\\facialrecognition.png"))
+        self.org_img_h3 = Image.open(resource_path("college_images\\u.jpg"))
+        self.org_img_bg = Image.open(resource_path("college_images\\wp2551980.jpg"))
+        
+        # Prepare UI Elements (Labels) empty first
+        self.h_lbl1 = Label(self.root, borderwidth=0)
+        self.h_lbl1.place(relx=0, rely=0, relwidth=0.333, relheight=0.191)
+        
+        self.h_lbl2 = Label(self.root, borderwidth=0)
+        self.h_lbl2.place(relx=0.333, rely=0, relwidth=0.333, relheight=0.191)
+        
+        self.h_lbl3 = Label(self.root, borderwidth=0)
+        self.h_lbl3.place(relx=0.666, rely=0, relwidth=0.334, relheight=0.191)
+        
+        self.bg_lbl = Label(self.root, borderwidth=0)
+        self.bg_lbl.place(relx=0, rely=0.191, relwidth=1.0, relheight=0.809)
 
-        # Proceed with images and title label setup
-        img = Image.open("college_images\\Stanford.jpg")
-        img = img.resize((450, 130), Image.Resampling.LANCZOS)
-        self.photoimg = ImageTk.PhotoImage(img)
-        f_lbl = Label(self.root, image=self.photoimg)
-        f_lbl.place(x=0, y=0, width=450, height=130)
-
-        img1 = Image.open("college_images\\facialrecognition.png")
-        img1 = img1.resize((450, 130), Image.Resampling.LANCZOS)
-        self.photoimg1 = ImageTk.PhotoImage(img1)
-        f_lbl1 = Label(self.root, image=self.photoimg1)
-        f_lbl1.place(x=450, y=0, width=450, height=130)
-
-        img2 = Image.open("college_images\\u.jpg")
-        img2 = img2.resize((460, 130), Image.Resampling.LANCZOS)
-        self.photoimg2 = ImageTk.PhotoImage(img2)
-        f_lbl2 = Label(self.root, image=self.photoimg2)
-        f_lbl2.place(x=900, y=0, width=460, height=130)
-    #background image
-        img3 = Image.open("college_images\\wp2551980.jpg")
-        img3 = img3.resize((1360, 560), Image.Resampling.LANCZOS)
-        self.photoimg3 = ImageTk.PhotoImage(img3)
-        bg_img = Label(self.root, image=self.photoimg3)
-        bg_img.place(x=0, y=130, width=1360, height=560)
-
+        # --- RESIZE BINDING ---
+        self.root.bind("<Configure>", self.on_resize)
 
         
-        self.time_lbl = Label(bg_img, font=('times new roman', 15, 'bold'), bg='white', fg='green',borderwidth=0,highlightthickness=0)
-        self.time_lbl.place(x=0, y=0, width=120, height=45)
-        self.update_time()  # start the clock
+        self.title_lbl = Label(self.root, text='', font=('times new roman', 30, 'bold'), bg='white', fg='red', borderwidth=0)
+        self.title_lbl.place(relx=0.09, rely=0.191, relwidth=0.82, relheight=0.065)
+        
+        self.time_lbl = Label(self.root, font=('times new roman', 15, 'bold'), bg='white', fg='green', borderwidth=0)
+        self.time_lbl.place(relx=0, rely=0.191, relwidth=0.09, relheight=0.065)
+        self.update_time()
 
-        self.title_lbl = Label(bg_img, text='', font=('times new roman', 35, 'bold'), bg='white', fg='red',borderwidth=0,highlightthickness=0)
-        self.title_lbl.place(x=120, y=0, width=1140, height=45)
-
-        # New frame for logout button
-        logout_frame = Frame(bg_img, bg='white')
-        logout_frame.place(x=1240, y=0, width=120, height=45)
-
-        self.back_btn = Button(logout_frame, text="Log Out", width=10, cursor='hand2',
+        # Logout Button Container
+        self.logout_frame = Frame(self.root, bg='white')
+        self.logout_frame.place(relx=0.91, rely=0.191, relwidth=0.09, relheight=0.065)
+        
+        self.back_btn = Button(self.logout_frame, text="Log Out", cursor='hand2',
                             font=('times new roman', 10, 'bold'), bg='red', fg='white',
                             activebackground="green", command=self.logout)
-        self.back_btn.pack(pady=10)
+        self.back_btn.pack(expand=True, fill=BOTH, padx=5, pady=5)
+
+
+        # --- BUTTONS ---
+       
         
+        self.create_menu_button(
+            resource_path("student.jpg"), "Student Details", self.studuent_detail,
+            0.073, 0.178, 0.147, 0.303, 0.071
+        )
+        self.create_menu_button(
+            resource_path("face_detector1.jpg"), "Face Recognition", self.face_data,
+            0.294, 0.178, 0.147, 0.303, 0.071
+        )
+        self.create_menu_button(
+            resource_path("report.jpg"), "Attendance", self.attendance_details,
+            0.514, 0.178, 0.147, 0.303, 0.071
+        )
+        self.create_menu_button(
+            resource_path("chat.jpg"), "HelpBot", self.chatbot,
+            0.735, 0.178, 0.147, 0.303, 0.071
+        )
+        
+        # Row 2
+        self.create_menu_button(
+            resource_path("Train.jpg"), "Train Data", self.train_data,
+            0.073, 0.589, 0.147, 0.303, 0.071
+        )
+        self.create_menu_button(
+            resource_path("opencv_face_reco_more_data.jpg"), "Photos", self.open_images,
+            0.294, 0.589, 0.147, 0.303, 0.071
+        )
+        self.create_menu_button(
+            resource_path("Team-Management-Software-Development.jpg"), "Developers", self.devloper,
+            0.514, 0.589, 0.147, 0.303, 0.071
+        )
+        self.create_menu_button(
+            resource_path("exit.jpg"), "Exit", self.iexit,
+            0.735, 0.589, 0.147, 0.303, 0.071
+        )
 
-
-
-
-
-
-    #student button
-    #1 Student Details 
-        img4 = Image.open("college_images\\student.jpg")
-        img4 = img4.resize((200,170), Image.Resampling.LANCZOS)
-        self.photoimg4 = ImageTk.PhotoImage(img4)
-
-        b1=Button(bg_img,image=self.photoimg4,cursor='hand2',command=self.studuent_detail)
-        b1.place(x=100,y=100,width=200,height=170)
-
-        b1_1=Button(bg_img,text="Student Details",cursor='hand2',font=('times new roman', 15, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.studuent_detail)
-        b1_1.place(x=100,y=260,width=200,height=40)
-
-    #2 Face Recognition
-        img5 = Image.open("college_images\\face_detector1.jpg")
-        img5 = img5.resize((200,170), Image.Resampling.LANCZOS)
-        self.photoimg5 = ImageTk.PhotoImage(img5)
-
-        b2=Button(bg_img,image=self.photoimg5,cursor='hand2',command=self.face_data)
-        b2.place(x=400,y=100,width=200,height=170)
-
-        b1_2=Button(bg_img,text="Face Recognition",cursor='hand2',font=('times new roman', 15, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.face_data)
-        b1_2.place(x=400,y=260,width=200,height=40)
-    # 3 Attendence
-        img6 = Image.open("college_images\\report.jpg")
-        img6 = img6.resize((200,170), Image.Resampling.LANCZOS)
-        self.photoimg6 = ImageTk.PhotoImage(img6)
-
-        b3=Button(bg_img,image=self.photoimg6,cursor='hand2',command=self.attendance_details)
-        b3.place(x=700,y=100,width=200,height=170)
-        b1_3=Button(bg_img,text="Attendence",cursor='hand2',font=('times new roman', 15, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.attendance_details)
-        b1_3.place(x=700,y=260,width=200,height=40)
-    #4 ChatBot
-        img7 = Image.open("college_images\\chat.jpg")
-        img7 = img7.resize((200,170), Image.Resampling.LANCZOS)
-        self.photoimg7 = ImageTk.PhotoImage(img7)
-
-        b4=Button(bg_img,image=self.photoimg7,cursor='hand2',command=self.chatbot)
-        b4.place(x=1000,y=100,width=200,height=170)
-        b1_4=Button(bg_img,text="HelpBot",cursor='hand2',font=('times new roman', 15, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.chatbot)
-        b1_4.place(x=1000,y=260,width=200,height=40)
-    # 5 Train
-        img8 = Image.open("college_images\\Train.jpg")
-        img8 = img8.resize((200,170), Image.Resampling.LANCZOS)
-        self.photoimg8 = ImageTk.PhotoImage(img8)
-
-        b5=Button(bg_img,image=self.photoimg8,cursor='hand2',command=self.train_data)
-        b5.place(x=100,y=330,width=200,height=170)
-
-        b1_5=Button(bg_img,text="Train Data",cursor='hand2',font=('times new roman', 15, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.train_data)
-        b1_5.place(x=100,y=480,width=200,height=40)
-
-    # 6 Photos
-        img9 = Image.open("college_images\\opencv_face_reco_more_data.jpg")
-        img9 = img9.resize((200,170), Image.Resampling.LANCZOS)
-        self.photoimg9 = ImageTk.PhotoImage(img9)
-
-        b6=Button(bg_img,image=self.photoimg9,cursor='hand2',command=self.open_images)
-        b6.place(x=400,y=330,width=200,height=170)
-        b1_6=Button(bg_img,text="Photos",cursor='hand2',font=('times new roman', 15, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.open_images)
-        b1_6.place(x=400,y=480,width=200,height=40)
-
-    # 7 Devlopers
-        img10 = Image.open("college_images\\Team-Management-Software-Development.jpg")
-        img10 = img10.resize((200,170), Image.Resampling.LANCZOS)
-        self.photoimg10 = ImageTk.PhotoImage(img10)
-
-        b7=Button(bg_img,image=self.photoimg10,cursor='hand2',command=self.devloper)
-        b7.place(x=700,y=330,width=200,height=170)
-        b1_7=Button(bg_img,text="Devlopers",cursor='hand2',font=('times new roman', 15, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.devloper)
-        b1_7.place(x=700,y=480,width=200,height=40)
-    #8 Exit
-        img11 = Image.open("college_images\\exit.jpg")
-        img11 = img11.resize((200,170), Image.Resampling.LANCZOS)
-        self.photoimg11 = ImageTk.PhotoImage(img11)
-
-        b11=Button(bg_img,image=self.photoimg11,cursor='hand2',command=self.iexit)
-        b11.place(x=1000,y=330,width=200,height=170)
-        b1_11=Button(bg_img,text="Exit",cursor='hand2',font=('times new roman', 15, 'bold'), bg='darkblue', fg='white'
-                    ,activebackground="red",activeforeground='green',command=self.iexit)
-        b1_11.place(x=1000,y=480,width=200,height=40)
-        # Keyboard shortcut for logout (Ctrl + L)
+        # Shortcuts
         self.root.bind("<Control-l>", self.logout_shortcut)
         self.root.bind("<Control-L>", self.logout_shortcut)
-        
 
-
-
-       
-       
-
-        # Start the slider after initializing everything
+        # Scrolling Text State
+        self.text = ''
+        self.count = 0
+        self.s = "FACE RECOGNITION ATTENDANCE SYSTEM "
         self.slider()
+
+    def initial_voice_greeting(self, engine):
+        """Runs initial voice greeting in a thread to prevent UI freeze"""
+        try:
+            engine.say("welcome to facial recognition attendance system please put your internet on and you must have webcam and SQL Database!!")
+            engine.runAndWait()
+        except:
+             pass
+        # Note: Messagebox must be on main thread, so we schedule it
+        self.root.after(0, lambda: tkinter.messagebox.showwarning('Note','This application required stable internet connection and webcam and SQL Database',parent=self.root))
+
+    def create_menu_button(self, img_name, title, command, relx, rely, relw, relh, btn_h_rel):
+        """
+        Creates a responsive menu button with image and label.
+        relx, rely: Position of the image
+        relw, relh: Size of the image
+        btn_h_rel: Height of the text button (placed relative to image bottom)
+        """
+        # Load and resize image once for initial 
+        container = Frame(self.bg_lbl, bg='white', bd=0)
+       
+        
+        # Let's place Image Button
+        b_img = Button(self.bg_lbl, command=command, cursor='hand2', bg='white', bd=0)
+        b_img.place(relx=relx, rely=rely, relwidth=relw, relheight=relh)
+        
+    
+        
+        text_rely = rely + relh - 0.015 # Slight overlap fix
+        
+        b_text = Button(self.bg_lbl, text=title, cursor='hand2',
+                       font=('times new roman', 13, 'bold'), bg='darkblue', fg='white',
+                       activebackground="red", activeforeground='green', command=command)
+        b_text.place(relx=relx, rely=text_rely, relwidth=relw, relheight=btn_h_rel)
+        
+        # Store reference to original image and widgets for resizing/lifting
+        if not hasattr(self, 'btn_images'): self.btn_images = []
+        original_img = Image.open(resource_path(f"college_images\\{img_name}"))
+        self.btn_images.append({
+            'widget': b_img,
+            'text_widget': b_text,
+            'orig': original_img,
+            'aspect': original_img.width / original_img.height
+        })
+        
+        # Add resizing capability to text font? Maybe too complex for now.
+
+    def on_resize(self, event):
+        """Variable delay to prevent lag while dragging"""
+        if event.widget == self.root:
+            if self.resize_timer:
+                self.root.after_cancel(self.resize_timer)
+            self.resize_timer = self.root.after(100, self.update_layout_images)
+
+    def update_layout_images(self):
+        """Resizes background and header images to fit current window size"""
+        # Get current dimensions
+        win_w = self.root.winfo_width()
+        win_h = self.root.winfo_height()
+        
+        if win_w < 100 or win_h < 100: return
+        
+        # 1. Header Images
+        h_h = int(win_h * 0.191)
+        h_w_1 = int(win_w * 0.333)
+        h_w_3 = int(win_w * 0.334) # Remainder
+        
+        # Helper to update label image
+        def update_img(lbl, orig, w, h):
+            if w<=0 or h<=0: return
+            resized = orig.resize((w, h), Image.Resampling.LANCZOS)
+            photo = ImageTk.PhotoImage(resized)
+            lbl.config(image=photo)
+            lbl.image = photo # Keep ref
+            
+        update_img(self.h_lbl1, self.org_img_h1, h_w_1, h_h)
+        update_img(self.h_lbl2, self.org_img_h2, h_w_1, h_h)
+        update_img(self.h_lbl3, self.org_img_h3, h_w_3, h_h)
+        
+        # 2. Background Image
+        bg_h = int(win_h * 0.809)
+        update_img(self.bg_lbl, self.org_img_bg, win_w, bg_h)
+        
+        # 3. Button Images
+        # We need to calculate their actual size in pixels to resize the image properly
+        for item in self.btn_images:
+            btn = item['widget']
+            txt = item['text_widget']
+            
+            # Lift both the image button and the text button
+            btn.lift()
+            txt.lift()
+            
+            # Get current size of button widget
+            
+            b_w = btn.winfo_width()
+            b_h = btn.winfo_height()
+            
+            if b_w > 10 and b_h > 10:
+                # Resize image to fit button
+                resized = item['orig'].resize((b_w, b_h), Image.Resampling.LANCZOS)
+                photo = ImageTk.PhotoImage(resized)
+                btn.config(image=photo)
+                btn.image = photo
+        
+       
+        if hasattr(self, 'title_lbl'): self.title_lbl.lift()
+        if hasattr(self, 'time_lbl'): self.time_lbl.lift()
+        if hasattr(self, 'logout_frame'): self.logout_frame.lift()
+        
+        # Force a redraw to prevent glitches
+        self.root.update_idletasks()
 
     def logout_shortcut(self, event=None):
         self.logout()
@@ -217,15 +278,10 @@ class face_recog:
             self.new_window=Toplevel(self.root)
             self.app=attendance(self.new_window)
  
-    
-    
-
     def chatbot(self):
          self.new_window=Toplevel(self.root)
          self.app=ChatBot(self.new_window)
         
-
- 
     def devloper(self):
           self.new_window=Toplevel(self.root)
           self.app=developer(self.new_window)
@@ -241,6 +297,9 @@ class face_recog:
             self.time_lbl.after_cancel(self.time_after_id)
         if self.slider_after_id:
             self.title_lbl.after_cancel(self.slider_after_id)
+        
+        if self.resize_timer:
+            self.root.after_cancel(self.resize_timer)
 
         # Start fade-out animation
         self.fade_out()
@@ -279,8 +338,9 @@ class face_recog:
 
     def update_time(self):
         current_time = strftime('%I:%M:%S %p')
-        self.time_lbl.config(text=current_time)
-        self.time_after_id = self.time_lbl.after(1000, self.update_time)
+        if hasattr(self, 'time_lbl') and self.time_lbl.winfo_exists():
+            self.time_lbl.config(text=current_time)
+            self.time_after_id = self.time_lbl.after(1000, self.update_time)
 
 
 

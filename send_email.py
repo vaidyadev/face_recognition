@@ -6,6 +6,7 @@ import time
 import json
 import re
 from tkinter import *
+from utils import resource_path
 from tkinter import ttk, messagebox, filedialog
 from PIL import Image, ImageTk, ImageDraw
 try:
@@ -27,11 +28,12 @@ class emailsender:
 
     def __init__(self, root):
         self.root = root
-        self.root.geometry("750x680+80+0")
+        self.root.geometry("850x650+80+0")
+        self.root.minsize(800, 600)
         self.root.title("Email Sender")
-        self.root.resizable(False, False)
+        self.root.resizable(True, True)
         self.root.config(bg='dodger blue2')
-        self.root.wm_iconbitmap('assets\\email.ico')
+        self.root.wm_iconbitmap(resource_path('assets\\email.ico'))
 
         # ------------------ VARIABLES ------------------ #
         self.name_var = StringVar()
@@ -43,89 +45,106 @@ class emailsender:
         # Scheduling variables
         self.scheduled_time = None
         self.scheduled_email_data = None
-        self.scheduled_emails_file = "scheduled_emails.json"
+        self.scheduled_emails_file = resource_path("scheduled_emails.json")
         self._start_schedule_monitor()
 
+        # ------------------ GRID CONFIG ------------------ #
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(3, weight=1) # Compose area expands
+
         # ------------------ Title Section ------------------ #
-        img = Image.open("assets\\Email.png")
+        img = Image.open(resource_path("assets\\Email.png"))
         self.photoimg = ImageTk.PhotoImage(img)
+        
         title_frame = Frame(self.root, bg='white')
-        title_frame.grid(row=0, column=0, pady=5)
+        title_frame.grid(row=0, column=0, pady=5, sticky="ew", padx=20)
+        title_frame.columnconfigure(1, weight=1) # Title centers
+
         help_button = Button(title_frame, image=self.photoimg, bg='white', cursor='hand2',
                                 activebackground='white', borderwidth=0, command=self.show_shortcuts)
-        help_button.grid(row=0, column=0, padx=15)
+        help_button.grid(row=0, column=0, padx=15, pady=5)
         ToolTip(help_button, "Help For Shortcuts <Control-h> ")
 
         title_label = Label(title_frame, text=' Email Sender',
                              font=('goudy old style', 28, 'bold'), bg='white', fg='dodger blue2')
-        title_label.grid(row=0, column=1)
+        title_label.grid(row=0, column=1, sticky="w")
         
 
-
-        img1 = Image.open("assets\\setting.png")
+        img1 = Image.open(resource_path("assets\\setting.png"))
         self.photoimg1 = ImageTk.PhotoImage(img1)
         setting_button = Button(title_frame, image=self.photoimg1, bg='white', cursor='hand2',
                                 activebackground='white', borderwidth=0, command=self.setting)
-        setting_button.grid(row=0, column=2, padx=15)
+        setting_button.grid(row=0, column=2, padx=15, pady=5)
         ToolTip(setting_button, "Email Credentials Settings <Control-c> ")
 
         # ------------------ To Email Section ------------------ #
         to_label = LabelFrame(root, text='To (Email Address)',
                               font=('times new roman', 16, 'bold'),
                               bd=5, fg='white', bg='dodger blue2')
-        to_label.grid(row=1, column=0, padx=100, pady=5)
+        to_label.grid(row=1, column=0, padx=20, pady=5, sticky="ew")
+        to_label.columnconfigure(0, weight=3)
+        to_label.columnconfigure(1, weight=1)
 
         self.to_entry = Entry(to_label, font=('times new roman', 16, 'bold'),
-                              width=25, state='readonly', textvariable=self.email_var)
-        self.to_entry.grid(row=0, column=0, pady=2)
+                              state='readonly', textvariable=self.email_var)
+        self.to_entry.grid(row=0, column=0, pady=5, padx=10, sticky="ew")
 
         self.get_name_combo = ttk.Combobox(to_label, font=('times new roman', 12, 'bold'),
-                                         width=20, state='readonly', cursor='hand2',
+                                         state='readonly', cursor='hand2',
                                          textvariable=self.name_var)
         self.get_name_combo.set("Select Name")
-        self.get_name_combo.grid(row=0, column=1, padx=15, sticky=W, pady=2)
+        self.get_name_combo.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
         self.get_name_combo.bind("<<ComboboxSelected>>", self.get_data)
 
+        # ------------------ Subject Section ------------------ #
         subject_label = LabelFrame(root, text='Subject',
                                    font=('times new roman', 16, 'bold'),
                                    bd=5, fg='white', bg='dodger blue2')
-        subject_label.grid(row=2, column=0, pady=2)
+        subject_label.grid(row=2, column=0, pady=5, padx=20, sticky="ew")
+        subject_label.columnconfigure(0, weight=1)
 
         self.subject_entry = Entry(subject_label, font=('times new roman', 16, 'bold'),
-                                   width=25, textvariable=self.subject_var)
-        self.subject_entry.grid(row=0, column=0)
+                                   textvariable=self.subject_var)
+        self.subject_entry.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
 
+        # ------------------ Compose Section ------------------ #
         compose_label = LabelFrame(root, text='Compose Email',
                                    font=('times new roman', 16, 'bold'),
                                    bd=5, fg='white', bg='dodger blue2')
-        compose_label.grid(row=3, column=0, pady=5, padx=20)
+        compose_label.grid(row=3, column=0, pady=5, padx=20, sticky="nsew")
+        compose_label.columnconfigure(0, weight=0) # Buttons don't expand
+        compose_label.columnconfigure(1, weight=0)
+        compose_label.columnconfigure(2, weight=1) # Spacer
+        compose_label.rowconfigure(1, weight=1)    # TextArea expands
 
-        img2 = Image.open("assets\\mic.png")
+        img2 = Image.open(resource_path("assets\\mic.png"))
         img2 = img2.resize((48, 48), Image.Resampling.LANCZOS)
         self.photoimg2 = ImageTk.PhotoImage(img2)
 
         speak_button = Button(compose_label, text='  Speak', image=self.photoimg2, compound=LEFT,
                               font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='dodger blue2',
                               activebackground='dodger blue2', command=self.speak)
-        speak_button.grid(row=0, column=0)
+        speak_button.grid(row=0, column=0, padx=5, pady=5, sticky="w")
         ToolTip(speak_button, "Speak <Control-m>")
 
-        img3 = Image.open("assets\\attechment.png")
+        img3 = Image.open(resource_path("assets\\attechment.png"))
         img3 = img3.resize((48, 48), Image.Resampling.LANCZOS)
         self.photoimg3 = ImageTk.PhotoImage(img3)
         attech_button = Button(compose_label, text='  Attachments', image=self.photoimg3, compound=LEFT,
                                font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='dodger blue2',
                                activebackground='dodger blue2', command=self.attechment)
-        attech_button.grid(row=0, column=1)
+        attech_button.grid(row=0, column=1, padx=5, pady=5, sticky="w")
         ToolTip(attech_button, "Attechments for Email <Control-a>")
 
         self.image_frame = Frame(compose_label)
-        self.image_frame.grid(row=1, column=2, rowspan=2, padx=10, sticky='n')
-
+        self.image_frame.grid(row=0, column=2, padx=10, sticky='e')
         self.image_thumbnails = []
 
         textarea_frame = Frame(compose_label)
-        textarea_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
+        textarea_frame.grid(row=1, column=0, columnspan=3, sticky="nsew", padx=5, pady=5)
+        textarea_frame.columnconfigure(0, weight=1)
+        textarea_frame.rowconfigure(0, weight=1)
+
         self.textarea = Text(textarea_frame, font=('times new roman', 14), height=7, width=65, pady=5, wrap=WORD)
         self.textarea.grid(row=0, column=0, sticky="nsew")
 
@@ -135,33 +154,40 @@ class emailsender:
         self.textarea.config(yscrollcommand=scrollbar.set)
 
         # ------------------ Action Buttons ------------------ #
-        img4 = Image.open("assets\\email_send.png")
+        button_frame = Frame(root, bg='dodger blue2')
+        button_frame.grid(row=4, column=0, pady=10, sticky="ew")
+        
+        # Center the buttons
+        btn_inner = Frame(button_frame, bg='dodger blue2')
+        btn_inner.pack(pady=5)
+
+        img4 = Image.open(resource_path("assets\\email_send.png"))
         self.photoimg4 = ImageTk.PhotoImage(img4)
-        send_button = Button(root, image=self.photoimg4, bg='dodger blue2', cursor='hand2',
+        send_button = Button(btn_inner, image=self.photoimg4, bg='dodger blue2', cursor='hand2',
                              activebackground='dodger blue2', borderwidth=0, command=self.send_mail)
-        send_button.place(x=290, y=540)
+        send_button.pack(side=LEFT, padx=15)
         ToolTip(send_button, "Send Email <Control-Return>")
 
-        img8 = Image.open("assets\\scheduled.png")
+        img8 = Image.open(resource_path("assets\\scheduled.png"))
         self.photoimg8 = ImageTk.PhotoImage(img8)
-        schedule_button = Button(self.root, image=self.photoimg8, bg='dodger blue2', cursor='hand2',
+        schedule_button = Button(btn_inner, image=self.photoimg8, bg='dodger blue2', cursor='hand2',
                                  activebackground='dodger blue2', borderwidth=0, command=self.open_schedule_window)
-        schedule_button.place(x=390, y=540)
+        schedule_button.pack(side=LEFT, padx=15)
         ToolTip(schedule_button, "Schedule E-mail Sending <Control-s>")
 
-        img5 = Image.open("assets\\Clear.png")
+        img5 = Image.open(resource_path("assets\\Clear.png"))
         self.photoimg5 = ImageTk.PhotoImage(img5)
 
-        clear_button = Button(root, image=self.photoimg5, bg='dodger blue2', cursor='hand2',
+        clear_button = Button(btn_inner, image=self.photoimg5, bg='dodger blue2', cursor='hand2',
                               activebackground='dodger blue2', borderwidth=0, command=self.clear)
-        clear_button.place(x=490, y=540)
+        clear_button.pack(side=LEFT, padx=15)
         ToolTip(clear_button, "Clear All Fields <Control-l>")
 
-        img6 = Image.open("assets\\exit.png")
+        img6 = Image.open(resource_path("assets\\exit.png"))
         self.photoimg6 = ImageTk.PhotoImage(img6)
-        exit_button = Button(root, image=self.photoimg6, bg='dodger blue2', cursor='hand2',
+        exit_button = Button(btn_inner, image=self.photoimg6, bg='dodger blue2', cursor='hand2',
                              activebackground='dodger blue2', borderwidth=0, command=self.iexit)
-        exit_button.place(x=590, y=540)
+        exit_button.pack(side=LEFT, padx=15)
         ToolTip(exit_button, "Exit Application <Control-q>")
         messagebox.showwarning("Email Delivery Info",
                                 "Our email may initially appear in receiver's spam or junk folder.\n\n"
@@ -281,7 +307,7 @@ class emailsender:
             if from_entry.get() == '' or pass_entry.get() == '':
                 messagebox.showerror("Error", 'All fields are required', parent=root1)
             else:
-                with open('credentials.txt', 'w') as f1:
+                with open(resource_path('credentials.txt'), 'w') as f1:
                     f1.write(from_entry.get() + ',' + pass_entry.get())
                     messagebox.showinfo('Information', 'Credentials Save successfully', parent=root1)
 
@@ -305,8 +331,8 @@ class emailsender:
         root1.geometry('620x350+350+70')
         root1.config(bg='dodger blue2')
         root1.resizable(False, False)
-        img = Image.open("assets\\Email.png")
-        root1.wm_iconbitmap('assets\\email.ico')
+        img = Image.open(resource_path("assets\\Email.png"))
+        root1.wm_iconbitmap(resource_path('assets\\email.ico'))
         self.photoimg = ImageTk.PhotoImage(img)
         title_label = Label(root1, text='Credential Settings', image=self.photoimg, compound=LEFT,
                             font=('goudy old style', 38, 'bold'), fg='white', bg='gray20')
@@ -327,11 +353,11 @@ class emailsender:
         pass_entry.grid(row=0, column=0)
 
         try:
-            eye_open_img = Image.open("assets\\eye_open.png")
+            eye_open_img = Image.open(resource_path("assets\\eye_open.png"))
             eye_open_img = eye_open_img.resize((20, 20), Image.Resampling.LANCZOS)
             self.eye_open_photo = ImageTk.PhotoImage(eye_open_img)
 
-            eye_closed_img = Image.open("assets\\eye_closed.png")
+            eye_closed_img = Image.open(resource_path("assets\\eye_closed.png"))
             eye_closed_img = eye_closed_img.resize((20, 20), Image.Resampling.LANCZOS)
             self.eye_closed_photo = ImageTk.PhotoImage(eye_closed_img)
 
@@ -365,7 +391,7 @@ class emailsender:
         ToolTip(clear_button, "Clear credentials fields")
 
         try:
-            with open('credentials.txt')as f:
+            with open(resource_path('credentials.txt'))as f:
                 for i in f:
                     cr=i.strip().split(',')
             from_entry.insert(0,cr[0])
@@ -433,7 +459,7 @@ class emailsender:
         from email.message import EmailMessage
         try:
             
-            with open('credentials.txt') as f1:
+            with open(resource_path('credentials.txt')) as f1:
                 cr = f1.readline().strip().split(',')
             sender_email = cr[0]
             sender_password = cr[1]
@@ -484,7 +510,7 @@ class emailsender:
         self.schedule_window.resizable(False, False)
 
         try:
-            self.schedule_window.wm_iconbitmap('assets\\email.ico')
+            self.schedule_window.wm_iconbitmap(resource_path('assets\\email.ico'))
         except Exception:
             pass
 
@@ -658,7 +684,7 @@ class emailsender:
     def _send_scheduled_email(self, email_data):
         from email.message import EmailMessage
         try:
-            with open('credentials.txt') as f1:
+            with open(resource_path('credentials.txt')) as f1:
                 cr = f1.readline().strip().split(',')
             sender_email = cr[0]
             sender_password = cr[1]

@@ -1,0 +1,40 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Allows manual triggering from the GitHub UI
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12' # We stick to 3.12 or 3.11 for better PyInstaller compatibility, though you can use 3.13 if needed.
+
+    - name: Install System Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller==6.11.0 # Or whichever latest stable you have
+
+    - name: Install Project Requirements
+      run: |
+        pip install -r requirements.txt
+        
+    - name: Build with PyInstaller
+      run: pyinstaller FaceRecognitionSystem.spec --noconfirm
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: FaceRecognitionSystem-EXE
+        path: dist/FaceRecognitionSystem
+        retention-days: 7 # Will keep the downloaded zip available for a week

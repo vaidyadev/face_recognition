@@ -1,20 +1,13 @@
-try:
-    import mysql.connector
-except ImportError:
-    mysql = None
+"""
+Centralized database module for the Face Recognition System.
+Uses config.py for database connection instead of hardcoded credentials.
+"""
+from config import get_db_connection
+
 
 def load_attendance_data():
     try:
-        if mysql is None:
-             return "MySQL connector not installed."
-
-        conn = mysql.connector.connect(
-            host='localhost', 
-            port=3307, 
-            username='root', 
-            password='1582', 
-            database='face_recognizer'
-        )
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT Student_id, Student_name, Roll, Dep, Date, Status FROM attendance")
         rows = cursor.fetchall()

@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import *
+from utils import resource_path
 from tkinter import ttk, messagebox, filedialog
 from PIL import Image, ImageTk
 import os
@@ -23,6 +24,11 @@ import calendar
 import threading
 from informing import Inform
 from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Global cache for holidays to avoid repeated API calls across instances
 HOLIDAY_CACHE = {}  # year -> set(dates)
 
@@ -30,7 +36,7 @@ HOLIDAY_CACHE = {}  # year -> set(dates)
 
 ai_client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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",
+    api_key=os.getenv("OPENAI_API_KEY"),
 )
 
 
@@ -40,9 +46,10 @@ class DetailedAttendanceReport:
         self.window.title("Advanced Attendance Analytics Dashboard")
         self.window.geometry("1400x800")
         self.window.state('zoomed')
+        self.window.minsize(1100, 700) # Ensure content fits 
         self.window.configure(bg='#ecf0f1')
         try:
-            self.window.iconbitmap('college_images\\bg1.ico')
+            self.window.iconbitmap(resource_path('college_images\\bg1.ico'))
         except:
             pass
         
@@ -71,9 +78,9 @@ class DetailedAttendanceReport:
         canvas.saveState()
 
         # Logo
-        if os.path.exists("assets/logo.png"):
+        if os.path.exists(resource_path("assets/logo.png")):
             canvas.drawImage(
-                "assets/logo.png",
+                resource_path("assets/logo.png"),
                 40, 800,
                 width=50,
                 height=50,
@@ -379,14 +386,14 @@ class DetailedAttendanceReport:
         img_path = None
         
         # Prioritize color image
-        color_path = f"data/user.{student_id}.5.jpg"
+        color_path = resource_path(f"data/user.{student_id}.5.jpg")
         
         if os.path.exists(color_path):
             img_path = color_path
         else:
             # Check other samples
             for i in range(1, 6):
-                temp_path = f"data/user.{student_id}.{i}.jpg"
+                temp_path = resource_path(f"data/user.{student_id}.{i}.jpg")
                 if os.path.exists(temp_path):
                     img_path = temp_path
                     break
@@ -522,7 +529,7 @@ class DetailedAttendanceReport:
             ax1.set_xticks(range(len(labels)))
             ax1.set_xticklabels(labels, rotation=20, ha="right")
 
-            chart1 = "chart_category.png"
+            chart1 = resource_path("chart_category.png")
             plt.tight_layout()
             fig1.savefig(chart1, dpi=300, bbox_inches="tight")
             plt.close(fig1)
@@ -542,7 +549,7 @@ class DetailedAttendanceReport:
             )
             ax2.set_title("Department-wise Distribution")
 
-            chart2 = "chart_department.png"
+            chart2 = resource_path("chart_department.png")
             plt.tight_layout()
             fig2.savefig(chart2, dpi=300, bbox_inches="tight")
             plt.close(fig2)
@@ -579,7 +586,7 @@ class DetailedAttendanceReport:
             ax3.set_xlim(0, 100)
             ax3.set_title("Top Students – Last 6 Months")
 
-            chart3 = "chart_monthly.png"
+            chart3 = resource_path("chart_monthly.png")
             plt.tight_layout()
             fig3.savefig(chart3, dpi=300, bbox_inches="tight")
             plt.close(fig3)
@@ -597,7 +604,7 @@ class DetailedAttendanceReport:
             try:
                 completion = ai_client.chat.completions.create(
                     extra_headers={"X-Title": "Attendance Intelligence"},
-                    model="tngtech/deepseek-r1t2-chimera:free",
+                    model="openai/gpt-oss-120b:free",
                     messages=[
                         {
                             "role": "system",
@@ -912,7 +919,8 @@ class DetailedAttendanceReport:
         ).pack(anchor=W, padx=20, pady=10)
 
         # Create matplotlib figure
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+        # Reduced width to 11 to fit smaller screens without scrolling
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 5)) 
         fig.patch.set_facecolor('white')
 
         # ============================
@@ -1083,7 +1091,7 @@ class DetailedAttendanceReport:
         # =========================
         # MONTHLY CHART
         # =========================
-        chart_file = "monthly_chart.png"
+        chart_file = resource_path("monthly_chart.png")
         top = monthly_stats[:10]
 
         fig, ax = plt.subplots(figsize=(7, 4))

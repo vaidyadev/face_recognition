@@ -3,19 +3,20 @@ from tkinter import Toplevel, Text, BOTH, WORD, END, ttk, Scrollbar
 from PIL import Image,ImageTk
 from tkinter import messagebox
 import re
-import mysql.connector
+from config import get_db_connection
 import smtplib
 from email.message import EmailMessage
 from tooltip import ToolTip
+from utils import resource_path
 
 class register:
     def __init__(self,root):
         self.root = root
         self.root.geometry("1360x680+0+0")
-        # self.root.geometry("1550x800+0+0")
         self.root.title("Face Recognition System")
-        self.root.resizable(False, False)
-        self.root.wm_iconbitmap('college_images\\bg1.ico')
+        self.root.resizable(True, True) # Enable resizing
+        self.root.minsize(1024, 600)    # Match main.py minimum size
+        self.root.wm_iconbitmap(resource_path('college_images\\bg1.ico'))
     ########################Variables#####################################
         self.var_fname=StringVar()
         self.var_lname=StringVar()
@@ -29,20 +30,29 @@ class register:
 
 
         
-        img3 = Image.open("college_images\\di.jpg")
-        img3 = img3.resize((1360, 680), Image.Resampling.LANCZOS)
-        self.photoimg3 = ImageTk.PhotoImage(img3)
-        bg_img = Label(self.root, image=self.photoimg3)
-        bg_img.place(x=0, y=0, relwidth=1, relheight=1)
+        self.bg_image_original = Image.open(resource_path("college_images\\di.jpg"))
+        self.bg_photo = ImageTk.PhotoImage(self.bg_image_original.resize((1360, 680), Image.Resampling.LANCZOS))
+        self.bg_label = Label(self.root, image=self.bg_photo)
+        self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-        img4 = Image.open("college_images\\reg.jpg")
+        # Debounce timer for resizing
+        self.resize_timer = None
+        # Bind resize event
+        self.root.bind("<Configure>", self.on_resize)
+
+        # Main Container to hold both the left image and the form
+        self.main_container = Frame(self.root, bg='white')
+        self.main_container.place(relx=0.5, rely=0.5, anchor=CENTER, width=1100, height=500)
+
+        img4 = Image.open(resource_path("college_images\\reg.jpg"))
         img4 = img4.resize((400,500), Image.Resampling.LANCZOS)
         self.photoimg4 = ImageTk.PhotoImage(img4)
-        left_img = Label(self.root, image=self.photoimg4)
-        left_img.place(x=50, y=100, width=400, height=500)
+        left_img = Label(self.main_container, image=self.photoimg4)
+        left_img.place(x=0, y=0, width=400, height=500)
 
-        frame=Frame(self.root,bg='white')
-        frame.place(x=450,y=100,width=700,height=500)
+        # Form frame now sits inside the container
+        frame=Frame(self.main_container, bg='white')
+        frame.place(x=400, y=0, width=700, height=500)
 
         register_lbl=Label(frame,text='REGISTER HERE',font=('times new roman',20,'bold'),fg='green',bg='white')
         register_lbl.place(x=20,y=20)
@@ -100,8 +110,8 @@ class register:
         self.pasw.bind("<Button-3>", lambda e: "break")  # disable right-click
 
         # Load show/hide images
-        self.show_icon = ImageTk.PhotoImage(Image.open("college_images/pass_show.png").resize((25, 25), Image.Resampling.LANCZOS))
-        self.hide_icon = ImageTk.PhotoImage(Image.open("college_images/pass_hide.png").resize((25, 25), Image.Resampling.LANCZOS))
+        self.show_icon = ImageTk.PhotoImage(Image.open(resource_path("college_images/pass_show.png")).resize((25, 25), Image.Resampling.LANCZOS))
+        self.hide_icon = ImageTk.PhotoImage(Image.open(resource_path("college_images/pass_hide.png")).resize((25, 25), Image.Resampling.LANCZOS))
 
         # Password toggle button
         self.show_hide_btn = Button(frame, image=self.show_icon, command=self.toggle_password, bg='white', bd=0, activebackground='white', cursor='hand2')
@@ -119,8 +129,8 @@ class register:
         self.cnpass.bind("<Button-3>", lambda e: "break")
 
         # Toggle show/hide for confirm password
-        self.show_icon2 = ImageTk.PhotoImage(Image.open("college_images/pass_show.png").resize((25, 25), Image.Resampling.LANCZOS))
-        self.hide_icon2 = ImageTk.PhotoImage(Image.open("college_images/pass_hide.png").resize((25, 25), Image.Resampling.LANCZOS))
+        self.show_icon2 = ImageTk.PhotoImage(Image.open(resource_path("college_images/pass_show.png")).resize((25, 25), Image.Resampling.LANCZOS))
+        self.hide_icon2 = ImageTk.PhotoImage(Image.open(resource_path("college_images/pass_hide.png")).resize((25, 25), Image.Resampling.LANCZOS))
 
         self.show_hide_btn2 = Button(frame, image=self.show_icon2, command=self.toggle_confirm_password, bg='white', bd=0, activebackground='white', cursor='hand2')
         self.show_hide_btn2.place(x=600, y=350)
@@ -137,13 +147,13 @@ class register:
         terms_lbl.bind("<Button-1>", self.open_terms_conditions)
         ToolTip(terms_lbl,'Click to read terms and conditions')
 
-        img1 = Image.open("college_images\\register-now-button1.jpg")
+        img1 = Image.open(resource_path("college_images\\register-now-button1.jpg"))
         img1 = img1.resize((150,50), Image.Resampling.LANCZOS)
         self.photoimg1 = ImageTk.PhotoImage(img1)
         register_img =Button(frame, image=self.photoimg1,bg='white',borderwidth=0,cursor='hand2',font=('times new roman',15,'bold'),activebackground='white',command=self.register)
         register_img.place(x=50, y=440, width=150)
 
-        img2 = Image.open("college_images\\loginpng.png")
+        img2 = Image.open(resource_path("college_images\\loginpng.png"))
         img2 = img2.resize((150,50), Image.Resampling.LANCZOS)
         self.photoimg2 = ImageTk.PhotoImage(img2)
         login_img = Button(frame, image=self.photoimg2,bg='white',borderwidth=0,cursor='hand2',font=('times new roman',15,'bold'),activebackground='white',command=self.login_now)
@@ -159,18 +169,36 @@ class register:
 
 
 
+
     #####################Functions################################
+
+    def on_resize(self, event):
+        """Variable delay to prevent lag while dragging"""
+        if event.widget == self.root:
+            if self.resize_timer:
+                self.root.after_cancel(self.resize_timer)
+            self.resize_timer = self.root.after(100, self.update_background)
+
+    def update_background(self):
+        new_width = self.root.winfo_width()
+        new_height = self.root.winfo_height()
+        
+        if new_width < 100 or new_height < 100: return
+
+        image = self.bg_image_original.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        self.bg_photo = ImageTk.PhotoImage(image)
+        self.bg_label.config(image=self.bg_photo)
 
     def open_terms_conditions(self, event=None):
         terms_window = Toplevel(self.root)
         terms_window.title("Terms and Conditions")
         terms_window.geometry("700x550+100+50")
-        terms_window.iconbitmap("college_images\\bg1.ico")
+        terms_window.iconbitmap(resource_path("college_images\\bg1.ico"))
         terms_window.configure(bg='#f0f8ff')
         terms_window.resizable(False, False)
 
         # Load logo image
-        logo_img = Image.open("college_images/facialrecognition (1).png").resize((100, 100), Image.Resampling.LANCZOS)
+        logo_img = Image.open(resource_path("college_images/facialrecognition (1).png")).resize((100, 100), Image.Resampling.LANCZOS)
         self.logo_photo = ImageTk.PhotoImage(logo_img)
         logo_label = Label(terms_window, image=self.logo_photo, bg='#f0f8ff')
         logo_label.pack(pady=(10, 0))
@@ -188,7 +216,7 @@ class register:
         frame = Frame(terms_window, bg="#f0f8ff")
         frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
 
-        terms_text = Text(frame, wrap=WORD, font=('Segoe UI', 12), bg='white', fg='#333333', insertbackground='black')
+        terms_text = Text(frame, wrap=WORD, font=('Segoe UI', 12), bg='white', fg='#333333', insertbackground='black', relief=FLAT, bd=0, padx=15, pady=15)
         terms_text.pack(side=LEFT, fill=BOTH, expand=True)
 
         scroll = ttk.Scrollbar(frame, orient=VERTICAL, command=terms_text.yview, style="Vertical.TScrollbar")
@@ -201,13 +229,37 @@ class register:
         terms_text.bind("<Enter>", lambda e: terms_text.bind_all("<MouseWheel>", on_mousewheel))
         terms_text.bind("<Leave>", lambda e: terms_text.unbind_all("<MouseWheel>"))
 
-        try:
-            with open("terms.txt", "r", encoding="utf-8") as file:
-                terms = file.read()
-        except FileNotFoundError:
-            terms = "⚠️ Terms and Conditions file not found."
+        # Configure tags for beautiful formatting
+        terms_text.tag_configure("title", font=("Segoe UI", 18, "bold"), justify="center", foreground="#004a99", spacing1=15, spacing3=5)
+        terms_text.tag_configure("subtitle", font=("Segoe UI", 13, "bold"), justify="center", foreground="#e63900", spacing3=25)
+        terms_text.tag_configure("heading", font=("Segoe UI", 12, "bold"), foreground="#000000", spacing1=15, spacing3=5, lmargin1=10, lmargin2=10)
+        terms_text.tag_configure("body", font=("Segoe UI", 11), foreground="#444444", lmargin1=30, lmargin2=30, spacing3=15)
+        terms_text.tag_configure("footer", font=("Segoe UI", 11, "italic", "bold"), justify="center", foreground="#004a99", spacing1=30, spacing3=20)
 
-        terms_text.insert(END, terms)
+        try:
+            with open(resource_path("terms.txt"), "r", encoding="utf-8") as file:
+                lines = file.readlines()
+                
+            for index, line in enumerate(lines):
+                line_stripped = line.strip()
+                
+                if line_stripped == "":
+                    continue
+                    
+                if index == 0:
+                    terms_text.insert(END, line_stripped + "\n", "title")
+                elif index == 1:
+                    terms_text.insert(END, line_stripped + "\n", "subtitle")
+                elif re.match(r"^\d+\.\s.*:", line_stripped):
+                    terms_text.insert(END, line_stripped + "\n", "heading")
+                elif line_stripped.startswith("By continuing"):
+                    terms_text.insert(END, line_stripped + "\n", "footer")
+                else:
+                    terms_text.insert(END, line_stripped + "\n", "body")
+                    
+        except FileNotFoundError:
+            terms_text.insert(END, "⚠️ Terms and Conditions file not found.\n", "title")
+
         terms_text.config(state=DISABLED)
 
         
@@ -247,7 +299,7 @@ class register:
             self.var_lname.set(self.var_lname.get().title())
 
             try:
-                conn=mysql.connector.connect(host='localhost',port="3307",username='root',password='1582',database='face_recognizer')
+                conn=get_db_connection()
                 my_cursor=conn.cursor()
                 query=('select * from register where email=%s')
                 value=(self.var_email.get(),)
@@ -348,7 +400,7 @@ class register:
         root.mainloop()
  
     def send_confirmation_email(self, to_email, name):
-            with open ('credentials.txt') as f1:
+            with open (resource_path('credentials.txt')) as f1:
                 for i in f1:
                     cr= i.strip().split(',')
             msg = EmailMessage()

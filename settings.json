@@ -1,5 +1,7 @@
 {
     "language": "hi",
-    "model": "tngtech/deepseek-r1t2-chimera:free",
-    "theme_mode": "Dark"
+    "model": "openai/gpt-oss-120b:free",
+    "theme_mode": "Light",
+    "reasoning_enabled": false,
+    "thinking_budget": 1024
 }

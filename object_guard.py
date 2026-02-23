@@ -1,5 +1,6 @@
 # object_guard.py
 from ultralytics import YOLO
+from utils import resource_path
 import torch
 import numpy as np
 
@@ -10,7 +11,7 @@ class ObjectGuard:
 
         # Load model once during initialization
         print("Loading Object Guard Model...")
-        self.model = YOLO("yolov8n.pt")
+        self.model = YOLO(resource_path("yolov8n.pt"))
         self.model.fuse()
 
         # Run a dummy inference to warm up the model (prevents lag on first real frame)

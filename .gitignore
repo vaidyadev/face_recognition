@@ -1,3 +1,8 @@
 *.pyc
 __pycache__/
 modules/ai_chat.py
+
+# Environment and credentials
+.env
+credentials.txt
+remember.txt

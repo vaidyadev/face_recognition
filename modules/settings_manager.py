@@ -2,7 +2,7 @@ import json
 import os
 
 class SettingsManager:
-    def __init__(self, settings_file="settings.json"):
+    def __init__(self, settings_file=resource_path("settings.json")):
         self.settings_file = settings_file
         self.settings = self.load_settings()
 
@@ -22,7 +22,9 @@ class SettingsManager:
         """Returns default settings."""
         return {
             "language": "en",
-            "model": "tngtech/deepseek-r1t2-chimera:free"
+            "model":  "openai/gpt-oss-120b:free",
+            "reasoning_enabled": True,
+            "thinking_budget": 1024
         }
 
     def save_settings(self, new_settings=None):
