@@ -93,37 +93,37 @@ class face_recog:
        
         
         self.create_menu_button(
-            resource_path("student.jpg"), "Student Details", self.studuent_detail,
+            "student.jpg", "Student Details", self.studuent_detail,
             0.073, 0.178, 0.147, 0.303, 0.071
         )
         self.create_menu_button(
-            resource_path("face_detector1.jpg"), "Face Recognition", self.face_data,
+            "face_detector1.jpg", "Face Recognition", self.face_data,
             0.294, 0.178, 0.147, 0.303, 0.071
         )
         self.create_menu_button(
-            resource_path("report.jpg"), "Attendance", self.attendance_details,
+            "report.jpg", "Attendance", self.attendance_details,
             0.514, 0.178, 0.147, 0.303, 0.071
         )
         self.create_menu_button(
-            resource_path("chat.jpg"), "HelpBot", self.chatbot,
+            "chat.jpg", "HelpBot", self.chatbot,
             0.735, 0.178, 0.147, 0.303, 0.071
         )
         
         # Row 2
         self.create_menu_button(
-            resource_path("Train.jpg"), "Train Data", self.train_data,
+            "Train.jpg", "Train Data", self.train_data,
             0.073, 0.589, 0.147, 0.303, 0.071
         )
         self.create_menu_button(
-            resource_path("opencv_face_reco_more_data.jpg"), "Photos", self.open_images,
+            "opencv_face_reco_more_data.jpg", "Photos", self.open_images,
             0.294, 0.589, 0.147, 0.303, 0.071
         )
         self.create_menu_button(
-            resource_path("Team-Management-Software-Development.jpg"), "Developers", self.devloper,
+            "Team-Management-Software-Development.jpg", "Developers", self.devloper,
             0.514, 0.589, 0.147, 0.303, 0.071
         )
         self.create_menu_button(
-            resource_path("exit.jpg"), "Exit", self.iexit,
+            "exit.jpg", "Exit", self.iexit,
             0.735, 0.589, 0.147, 0.303, 0.071
         )
 

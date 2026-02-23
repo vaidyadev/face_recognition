@@ -276,7 +276,7 @@ class students:
         year_label=Label(current_course_frame,text='Year',font=('times new roman', 12, 'bold'),bg='white')
         year_label.grid(row=1,column=0,padx=5,sticky=W)
         current_year = datetime.datetime.now().year
-        years = [f"{y}-{y+1}" for y in range(current_year-1, current_year+4)]
+        years = [f"{y}-{y+1}" for y in range(current_year-4, current_year+1)]
         year_combo = ttk.Combobox(current_course_frame,font=('times new roman', 12, 'bold'),textvariable=self.var_year,width=17,state='readonly')
         year_combo['values'] = years
         year_combo.set("Select Year")
@@ -866,7 +866,7 @@ class students:
     def open_student_filter(self):
         win = Toplevel(self.root)
         win.title("Advanced Filters")
-        win.geometry("360x440")
+        win.geometry("360x490")
         win.resizable(False, False)
         win.transient(self.root)
         win.grab_set()
@@ -897,8 +897,10 @@ class students:
         # ================= YEAR =================
         Label(win, text="Year", font=("times new roman", 11, "bold")).pack(anchor=W, padx=10, pady=5)
 
+        current_year = datetime.datetime.now().year
+        filter_years = [f"{y}-{y+1}" for y in range(current_year-4, current_year+1)]
         year_vars = {}
-        for y in ("2023-24", "2024-25", "2025-26"):
+        for y in filter_years:
             v = BooleanVar(value=y in self.active_filters["Year"])
             year_vars[y] = v
             Checkbutton(win, text=y, variable=v).pack(anchor=W, padx=25)

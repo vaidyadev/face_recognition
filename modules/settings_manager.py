@@ -1,5 +1,10 @@
 import json
 import os
+import sys
+
+# Ensure parent directory is in sys.path to import utils
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils import resource_path
 
 class SettingsManager:
     def __init__(self, settings_file=resource_path("settings.json")):
