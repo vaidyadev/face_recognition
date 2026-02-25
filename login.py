@@ -70,41 +70,41 @@ class login_window:
         self.lock_timer_label = None
 
         # Login frame
-        frame = Frame(self.root, bg='black')
+        frame = Frame(self.root, bg='maroon1')
         frame.place(relx=0.5, rely=0.5, anchor=CENTER, width=340, height=450)
 
         img = Image.open(resource_path("college_images\\LoginIconAppl.png"))
         img = img.resize((100, 100), Image.Resampling.LANCZOS)
         self.photoimg = ImageTk.PhotoImage(img)
-        label_img = Label(frame, image=self.photoimg, bg='black', borderwidth=0)
+        label_img = Label(frame, image=self.photoimg, bg='maroon1', borderwidth=0)
         label_img.place(x=125, y=0, width=100, height=100)
 
-        get_sta = Label(frame, text='Get Started', font=('times new roman', 20, 'bold'), fg='white', bg='black')
+        get_sta = Label(frame, text='Get Started', font=('times new roman', 20, 'bold'), fg='white', bg='maroon1')
         get_sta.place(x=100, y=100)
 
-        username = Label(frame, text='User email', font=('times new roman', 15, 'bold'), fg='white', bg='black')
+        username = Label(frame, text='User email', font=('times new roman', 15, 'bold'), fg='white', bg='maroon1')
         username.place(x=70, y=155)
 
         self.txt = ttk.Entry(frame, font=('times new roman', 15, 'bold'), textvariable=self.var_email)
         self.txt.place(x=40, y=180, width=270)
         self.txt.focus()
 
-        password = Label(frame, text='Password', font=('times new roman', 15, 'bold'), fg='white', bg='black')
+        password = Label(frame, text='Password', font=('times new roman', 15, 'bold'), fg='white', bg='maroon1')
         password.place(x=70, y=225)
         
         self.passw = ttk.Entry(frame, font=('times new roman', 15, 'bold'), textvariable=self.var_pass, show='*')
         self.passw.place(x=40, y=250, width=270)
 
         remember_me = Checkbutton(frame, text="Remember Me", variable=self.remember_var,
-                          font=('times new roman', 10), bg='black', fg='white',
-                          activebackground='black', activeforeground='white',
-                          selectcolor='black')
+                          font=('times new roman', 10), bg='maroon1', fg='white',
+                          activebackground='maroon1', activeforeground='white',
+                          selectcolor='maroon1')
         remember_me.place(x=40, y=290)
 
         # Toggle show/hide icons for login password field
         self.show_icon2 = ImageTk.PhotoImage(Image.open(resource_path("college_images/pass_show.png")).resize((25, 29), Image.Resampling.LANCZOS))
         self.hide_icon2 = ImageTk.PhotoImage(Image.open(resource_path("college_images/pass_hide.png")).resize((25, 29), Image.Resampling.LANCZOS))
-        self.show_hide_btn2 = Button(frame, image=self.show_icon2, command=self.toggle_login_password, bg='black', bd=0, activebackground='black', cursor='hand2')
+        self.show_hide_btn2 = Button(frame, image=self.show_icon2, command=self.toggle_login_password, bg='maroon1', bd=0, activebackground='maroon1', cursor='hand2')
         self.show_hide_btn2.place(x=310, y=250, height=29)
         self.login_password_visible = False
 
@@ -112,23 +112,23 @@ class login_window:
         img1 = Image.open(resource_path("college_images\\LoginIconAppl.png"))
         img1 = img1.resize((25, 25), Image.Resampling.LANCZOS)
         self.photoimg1 = ImageTk.PhotoImage(img1)
-        label_img1 = Label(frame, image=self.photoimg1, bg='black', borderwidth=0)
+        label_img1 = Label(frame, image=self.photoimg1, bg='maroon1', borderwidth=0)
         label_img1.place(x=45, y=153, width=25, height=25)
         img2 = Image.open(resource_path("college_images\\lock-512.png"))
         img2 = img2.resize((25, 25), Image.Resampling.LANCZOS)
         self.photoimg2 = ImageTk.PhotoImage(img2)
-        label_img2 = Label(frame, image=self.photoimg2, bg='black', borderwidth=0)
+        label_img2 = Label(frame, image=self.photoimg2, bg='maroon1', borderwidth=0)
         label_img2.place(x=45, y=223, width=25, height=25)
 
-        log_btn = Button(frame, text='Login', font=('times new roman', 15, 'bold'), fg='white', bg='red', activeforeground='white', activebackground='red', cursor='hand2', command=self.login)
+        log_btn = Button(frame, text='Login', font=('times new roman', 15, 'bold'), fg='white', bg='blue2', activeforeground='white', activebackground='blue2', cursor='hand2', command=self.login)
         log_btn.place(x=110, y=320, width=120, height=35)
         ToolTip(log_btn,"Shortcut: Ctrl + Enter")
 
-        reg_btn = Button(frame, text='Register New User', font=('times new roman', 10, 'bold'), bd=0, fg='white', bg='black', activeforeground='white', activebackground='black', cursor='hand2', command=self.register_window)
+        reg_btn = Button(frame, text='Register New User', font=('times new roman', 10, 'bold'), bd=0, fg='white', bg='maroon1', activeforeground='white', activebackground='maroon1', cursor='hand2', command=self.register_window)
         reg_btn.place(x=15, y=370, width=160)
         ToolTip(reg_btn,"Shortcut: Ctrl + L")
 
-        forgot_btn = Button(frame, text='Forgot Password', font=('times new roman', 10, 'bold'), bd=0, fg='white', bg='black', activeforeground='white', activebackground='black', cursor='hand2', command=self.forgot_password)
+        forgot_btn = Button(frame, text='Forgot Password', font=('times new roman', 10, 'bold'), bd=0, fg='white', bg='maroon1', activeforeground='white', activebackground='maroon1', cursor='hand2', command=self.forgot_password)
         forgot_btn.place(x=10, y=390, width=160)
         ToolTip(forgot_btn,"Shortcut: Ctrl + F")
                 # Keyboard shortcuts
@@ -137,7 +137,6 @@ class login_window:
         self.root.bind("<Control-f>", lambda e: self.forgot_password())
         # Show shortcuts info on startup
         self.root.after(500, self.show_shortcuts_info)
-
 
     def on_resize(self, event):
         """Variable delay to prevent lag while dragging, same as main.py"""
@@ -330,7 +329,7 @@ class login_window:
         
         # Add label for countdown
         if self.lock_timer_label is None:
-            self.lock_timer_label = Label(self.root, text='', font=('times new roman', 14, 'bold'), fg='red', bg='black')
+            self.lock_timer_label = Label(self.root, text='', font=('times new roman', 14, 'bold'), fg='blue2', bg='red')
             self.lock_timer_label.place(x=570, y=620)
 
         self.countdown(self.lock_time)
@@ -380,7 +379,7 @@ class login_window:
         self.root1.title("Forgot Password")
         self.root1.wm_iconbitmap(resource_path('college_images\\bg1.ico'))
         self.root1.resizable(False, False)
-        self.root1.configure(bg='aqua')
+        self.root1.configure(bg='maroon1')
 
         # ================= VARIABLES =================
         self.var_pass1 = StringVar()
@@ -392,10 +391,10 @@ class login_window:
 
         # ================= UI =================
         Label(self.root1, text='Forgot Password', font=('times new roman', 20, 'bold'),
-              fg='red', bg='aqua').pack(pady=10)
+              fg='blue2', bg='maroon1').pack(pady=10)
 
         Label(self.root1, text='Security Question', font=('times new roman', 14, 'bold'),
-              bg='aqua').place(x=50, y=60)
+              bg='maroon1').place(x=50, y=60)
 
         self.security_q_combo = ttk.Combobox(self.root1, font=('times new roman', 13),
                                              state='readonly',
@@ -404,7 +403,7 @@ class login_window:
         self.security_q_combo.place(x=50, y=90, width=240)
 
         Label(self.root1, text='Security Answer', font=('times new roman', 14, 'bold'),
-              bg='aqua').place(x=50, y=130)
+              bg='maroon1').place(x=50, y=130)
 
         self.security_a = ttk.Entry(self.root1, font=('times new roman', 13))
         self.security_a.place(x=50, y=160, width=240)
@@ -417,13 +416,13 @@ class login_window:
         self.send_otp_btn.place(x=100, y=205, width=120)
 
         Label(self.root1, text='Enter OTP', font=('times new roman', 14, 'bold'),
-              bg='aqua').place(x=50, y=245)
+              bg='maroon1').place(x=50, y=245)
 
         self.otp = ttk.Entry(self.root1, font=('times new roman', 13))
         self.otp.place(x=50, y=275, width=240)
 
         Label(self.root1, text='New Password', font=('times new roman', 14, 'bold'),
-              bg='aqua').place(x=50, y=315)
+              bg='maroon1').place(x=50, y=315)
 
         self.new_passw = ttk.Entry(self.root1, textvariable=self.var_pass1,
                                    font=('times new roman', 13), show='*')
@@ -441,8 +440,8 @@ class login_window:
         self.root1,
         image=self.show_icon,
         command=self.toggle_reset_password,
-        bg='red',
-        activebackground='red',
+        bg='maroon1',
+        activebackground='maroon1',
         bd=0,
         cursor='hand2'
     )
@@ -453,8 +452,8 @@ class login_window:
             self.root1,
             text="",
             font=('times new roman', 11, 'bold'),
-            fg='red',
-            bg='aqua'
+            fg='blue2',
+            bg='maroon1'
         )
         self.strength_label_fp.place(x=50, y=370)
 
@@ -468,14 +467,14 @@ class login_window:
         self.otp_timer_label = Label(self.root1,
                                      text="",
                                      font=('times new roman', 12, 'bold'),
-                                     fg='red', bg='aqua')
+                                     fg='blue2', bg='maroon1')
         self.otp_timer_label.place(x=85, y=430)
 
         # ================= ATTEMPTS LABEL =================
         self.attempts_label = Label(self.root1,
                                     text=f"OTP Attempts left: {self.max_otp_attempts}",
                                     font=('times new roman', 10, 'bold'),
-                                    fg='red', bg='aqua')
+                                    fg='blue2', bg='maroon1')
         self.attempts_label.place(x=110, y=460)
 
     def start_otp_countdown(self):
@@ -621,7 +620,7 @@ class login_window:
 
         if len(password) < 6:
             strength = "Too Short"
-            color = "red"
+            color = "bisque"
         elif (re.search(r'[A-Z]', password) and
             re.search(r'[a-z]', password) and
             re.search(r'[0-9]', password) and
@@ -630,10 +629,10 @@ class login_window:
             color = "green"
         elif re.search(r'[A-Za-z]', password) and re.search(r'[0-9]', password):
             strength = "Medium"
-            color = "orange"
+            color = "cyan"
         else:
             strength = "Weak"
-            color = "red"
+            color = "azure"
 
         self.strength_label_fp.config(text=f"Strength: {strength}", fg=color)
 

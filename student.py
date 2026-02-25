@@ -200,9 +200,8 @@ class students:
             # Use 0.334 for the last one to cover remaining space
             self.h_lbl3.place(relx=0.666, rely=0, relwidth=0.334, relheight=0.191)
 
-            # 2. Background Image
-            self.org_img_bg = Image.open(resource_path("college_images\\wp2551980.jpg"))
-            self.bg_lbl = Label(self.root, bg='white')
+           
+            self.bg_lbl = Label(self.root, bg='gold4')
             self.bg_lbl.place(relx=0, rely=0.191, relwidth=1.0, relheight=0.809)
 
         except Exception as e:
@@ -247,8 +246,8 @@ class students:
 
         
         try:
-            self.org_img_left = Image.open(resource_path("college_images\\AdobeStock_303989091.jpeg"))
-            img_left = self.org_img_left.resize((635, 140), Image.Resampling.LANCZOS)
+            self.org_img_left = Image.open(resource_path("college_images\\AdobeStock_3039890911.jpg"))
+            img_left = self.org_img_left.resize((635, 180), Image.Resampling.LANCZOS)
             self.left_photoimg = ImageTk.PhotoImage(img_left)
             self.f_lbl_left = Label(left_frame, image=self.left_photoimg)
             self.f_lbl_left.place(relx=0.01, rely=0, relwidth=0.98, relheight=0.18)
@@ -378,32 +377,45 @@ class students:
         for i in range(4): btn_frame.columnconfigure(i, weight=1)
         btn_frame.rowconfigure(0, weight=1)
 
-        save_btn=Button(btn_frame,text="Save",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.add_data)
+        def bind_hover(btn, normal_bg, hover_bg):
+            btn.bind('<Enter>', lambda e: btn.config(bg=hover_bg))
+            btn.bind('<Leave>', lambda e: btn.config(bg=normal_bg))
+
+        save_btn=Button(btn_frame,text="Save",cursor='hand2',font=('times new roman', 10, 'bold'), bg='#228B22', fg='white',activebackground="#32CD32",activeforeground='white',command=self.add_data)
         save_btn.grid(row=0,column=0,sticky='NSEW')
-        update_btn=Button(btn_frame,text="Update",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_data)
+        bind_hover(save_btn, '#228B22', '#32CD32')
+        
+        update_btn=Button(btn_frame,text="Update",cursor='hand2',font=('times new roman', 10, 'bold'), bg='#0000CD', fg='white',activebackground="#4169E1",activeforeground='white',command=self.update_data)
         update_btn.grid(row=0,column=1,sticky='NSEW')
-        delete_btn=Button(btn_frame,text="Delete",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.delete_data)
+        bind_hover(update_btn, '#0000CD', '#4169E1')
+        
+        delete_btn=Button(btn_frame,text="Delete",cursor='hand2',font=('times new roman', 10, 'bold'), bg='#B22222', fg='white',activebackground="#FF6347",activeforeground='white',command=self.delete_data)
         delete_btn.grid(row=0,column=2,sticky='NSEW')
-        reset_btn=Button(btn_frame,text="Reset",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.reset_data)
+        bind_hover(delete_btn, '#B22222', '#FF6347')
+        
+        reset_btn=Button(btn_frame,text="Reset",cursor='hand2',font=('times new roman', 10, 'bold'), bg='#FF8C00', fg='white',activebackground="#FFA500",activeforeground='white',command=self.reset_data)
         reset_btn.grid(row=0,column=3,sticky='NSEW')
+        bind_hover(reset_btn, '#FF8C00', '#FFA500')
 
         btn_frame1=Frame(class_student_frame,bd=2,relief=RIDGE,bg='white')
         btn_frame1.place(relx=0, rely=0.84, relwidth=1.0, relheight=0.12)
         for i in range(2): btn_frame1.columnconfigure(i, weight=1)
         btn_frame1.rowconfigure(0, weight=1)
 
-        self.take_photo_btn=Button(btn_frame1,text="Take Photo Sample",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.photo_sample)
+        self.take_photo_btn=Button(btn_frame1,text="Take Photo Sample",cursor='hand2',font=('times new roman', 10, 'bold'), bg='#800080', fg='white',activebackground="#BA55D3",activeforeground='white',command=self.photo_sample)
         self.take_photo_btn.grid(row=0,column=0,sticky='NSEW')
+        bind_hover(self.take_photo_btn, '#800080', '#BA55D3')
 
-        self.update_photo_btn=Button(btn_frame1,text="Update Photo Sample",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=self.update_photosample)
+        self.update_photo_btn=Button(btn_frame1,text="Update Photo Sample",cursor='hand2',font=('times new roman', 10, 'bold'), bg='#008080', fg='white',activebackground="#20B2AA",activeforeground='white',command=self.update_photosample)
         self.update_photo_btn.grid(row=0,column=1,sticky='NSEW')
+        bind_hover(self.update_photo_btn, '#008080', '#20B2AA')
 
         right_frame=LabelFrame(main_frame,bd=2,bg='white',relief=RIDGE,text='Students Details',font=('times new roman', 12, 'bold'))
         right_frame.place(relx=0.51, rely=0.02, relwidth=0.48, relheight=0.96)
         
         try:
-            self.org_img_right = Image.open(resource_path("college_images\\student.jpg"))
-            img_right = self.org_img_right.resize((635, 130), Image.Resampling.LANCZOS)
+            self.org_img_right = Image.open(resource_path("college_images\\AdobeStock_303989091.jpg"))
+            img_right = self.org_img_right.resize((635, 180), Image.Resampling.LANCZOS)
             self.right_photoimg = ImageTk.PhotoImage(img_right)
             self.f_lbl_right = Label(right_frame, image=self.right_photoimg)
             self.f_lbl_right.place(relx=0.01, rely=0, relwidth=0.98, relheight=0.16)
@@ -431,14 +443,26 @@ class students:
         search_entry.grid(row=0, column=2, padx=2, pady=3, sticky='EW')
         search_entry.bind("<KeyRelease>", self.live_search)
 
-        reset_btn = Button(search_frame,text="Reset",cursor='hand2',font=('times new roman', 10, 'bold'),bg='green',fg='white',activebackground="red",activeforeground='green',command=self.reset_search)
+        def bind_hover(btn, normal_bg, hover_bg):
+            btn.bind('<Enter>', lambda e: btn.config(bg=hover_bg))
+            btn.bind('<Leave>', lambda e: btn.config(bg=normal_bg))
+
+        reset_btn = Button(search_frame,text="Reset",cursor='hand2',font=('times new roman', 10, 'bold'),bg='#228B22',fg='white',activebackground="#32CD32",activeforeground='white',command=self.reset_search)
         reset_btn.grid(row=0, column=3, padx=2, sticky='NSEW')
-        showall_btn=Button(search_frame,text="Refresh",cursor='hand2',font=('times new roman', 10, 'bold'), bg='darkblue', fg='white',activebackground="red",activeforeground='green',command=lambda: self.refresh_animation(self.fetch_data))
+        bind_hover(reset_btn, '#228B22', '#32CD32')
+        
+        showall_btn=Button(search_frame,text="Refresh",cursor='hand2',font=('times new roman', 10, 'bold'), bg='#0000CD', fg='white',activebackground="#4169E1",activeforeground='white',command=lambda: self.refresh_animation(self.fetch_data))
         showall_btn.grid(row=0,column=4,padx=2,sticky='NSEW')
-        Button(search_frame,text="Filter",font=("times new roman", 10, "bold"),bg="purple",fg="white",cursor='hand2',activebackground="#5d57b4",activeforeground='black',command=self.open_student_filter).grid(row=0,column=5,padx=2,sticky='NSEW')
+        bind_hover(showall_btn, '#0000CD', '#4169E1')
+        
+        filter_btn=Button(search_frame,text="Filter",font=("times new roman", 10, "bold"),bg="#800080",fg="white",cursor='hand2',activebackground="#BA55D3",activeforeground='white',command=self.open_student_filter)
+        filter_btn.grid(row=0,column=5,padx=2,sticky='NSEW')
+        bind_hover(filter_btn, '#800080', '#BA55D3')
         
         # EXPORT Button
-        Button(search_frame, text="Export", font=("times new roman", 10, "bold"), bg="orange", fg="white", cursor='hand2', activebackground="red", activeforeground='green', command=self.export_data).grid(row=0, column=6, padx=2, sticky='NSEW')
+        export_btn=Button(search_frame, text="Export", font=("times new roman", 10, "bold"), bg="#FF8C00", fg="white", cursor='hand2', activebackground="#FFA500", activeforeground='white', command=self.export_data)
+        export_btn.grid(row=0, column=6, padx=2, sticky='NSEW')
+        bind_hover(export_btn, '#FF8C00', '#FFA500')
 
         table_frame=Frame(right_frame,bd=2,bg='white',relief=RIDGE)
         table_frame.place(relx=0.01, rely=0.29, relwidth=0.98, relheight=0.69)

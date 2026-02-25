@@ -44,7 +44,7 @@ class TelegramBotSender:
         self.root.minsize(800, 600)
         self.root.title("Telegram Bot Sender")
         self.root.resizable(True, True)
-        self.root.config(bg='dodger blue2')
+        self.root.config(bg='#2B2B52')
         try:
             self.root.wm_iconbitmap(resource_path('assets\\telegram.ico'))
         except:
@@ -86,7 +86,7 @@ class TelegramBotSender:
         ToolTip(help_button, "Help For Shortcuts <Control-h> ")
         
         title_label = Label(title_frame, text=' Telegram Bot Sender',
-                             font=('goudy old style', 28, 'bold'), bg='white', fg='dodger blue2')
+                             font=('goudy old style', 28, 'bold'), bg='white', fg='#2B2B52')
         title_label.grid(row=0, column=1, sticky="w")
 
         try:
@@ -103,7 +103,7 @@ class TelegramBotSender:
         # ------------------ To Section ------------------ #
         to_label = LabelFrame(root, text='To (Chat ID / Username)',
                               font=('times new roman', 16, 'bold'),
-                              bd=5, fg='white', bg='dodger blue2')
+                              bd=5, fg='white', bg='#2B2B52')
         to_label.grid(row=1, column=0, padx=20, pady=5, sticky="ew")
         to_label.columnconfigure(0, weight=3)
         to_label.columnconfigure(1, weight=1)
@@ -122,7 +122,7 @@ class TelegramBotSender:
         # ------------------ Subject Section ------------------ #
         subject_label = LabelFrame(root, text='Subject',
                               font=('times new roman', 16, 'bold'),
-                              bd=5, fg='white', bg='dodger blue2')
+                              bd=5, fg='white', bg='#2B2B52')
         subject_label.grid(row=2, column=0, pady=5, padx=20, sticky="ew")
         subject_label.columnconfigure(0, weight=1)
 
@@ -133,7 +133,7 @@ class TelegramBotSender:
         # ------------------ Compose Section ------------------ #
         compose_label = LabelFrame(root, text='Compose Message',
                                    font=('times new roman', 16, 'bold'),
-                                   bd=5, fg='white', bg='dodger blue2')
+                                   bd=5, fg='white', bg='#2B2B52')
         compose_label.grid(row=3, column=0, pady=5, padx=20, sticky="nsew")
         compose_label.columnconfigure(0, weight=0)
         compose_label.columnconfigure(1, weight=0)
@@ -146,8 +146,8 @@ class TelegramBotSender:
             img2 = img2.resize((48, 48), Image.Resampling.LANCZOS)
             self.photoimg2 = ImageTk.PhotoImage(img2)
             speak_button = Button(compose_label, text='  Speak', image=self.photoimg2, compound=LEFT,
-                                font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='dodger blue2',
-                                activebackground='dodger blue2', command=self.speak)
+                                font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='#2B2B52', fg='white',
+                                activebackground='#483D8B', activeforeground='white', command=self.speak)
         except:
             speak_button = Button(compose_label, text='Speak', command=self.speak)
         speak_button.grid(row=0, column=0, padx=5, pady=5, sticky="w")
@@ -159,8 +159,8 @@ class TelegramBotSender:
             img3 = img3.resize((48, 48), Image.Resampling.LANCZOS)
             self.photoimg3 = ImageTk.PhotoImage(img3)
             attech_button = Button(compose_label, text='  Attachments', image=self.photoimg3, compound=LEFT,
-                                font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='dodger blue2',
-                                activebackground='dodger blue2', command=self.attechment)
+                                font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='#2B2B52', fg='white',
+                                activebackground='#483D8B', activeforeground='white', command=self.attechment)
         except:
              attech_button = Button(compose_label, text='Attachments', command=self.attechment)
         attech_button.grid(row=0, column=1, padx=5, pady=5, sticky="w")
@@ -183,18 +183,18 @@ class TelegramBotSender:
         self.textarea.config(yscrollcommand=scrollbar.set)
 
         # ------------------ Action Buttons ------------------ #
-        button_frame = Frame(root, bg='dodger blue2')
+        button_frame = Frame(root, bg='#2B2B52')
         button_frame.grid(row=4, column=0, pady=10, sticky="ew")
         
-        btn_inner = Frame(button_frame, bg='dodger blue2')
+        btn_inner = Frame(button_frame, bg='#2B2B52')
         btn_inner.pack(pady=5)
         
         # Send
         try:
             img4 = Image.open(resource_path("assets\\email_send.png"))
             self.photoimg4 = ImageTk.PhotoImage(img4)
-            send_button = Button(btn_inner, image=self.photoimg4, bg='dodger blue2', cursor='hand2',
-                                activebackground='dodger blue2', borderwidth=0, command=self.send_msg)
+            send_button = Button(btn_inner, image=self.photoimg4, bg='#2B2B52', cursor='hand2',
+                                activebackground='#483D8B', borderwidth=0, command=self.send_msg)
         except:
             send_button = Button(btn_inner, text="Send", command=self.send_msg)
         send_button.pack(side=LEFT, padx=15)
@@ -204,8 +204,8 @@ class TelegramBotSender:
         try:
             img8 = Image.open(resource_path("assets\\scheduled.png"))
             self.photoimg8 = ImageTk.PhotoImage(img8)
-            schedule_button = Button(btn_inner, image=self.photoimg8, bg='dodger blue2', cursor='hand2',
-                                    activebackground='dodger blue2', borderwidth=0, command=self.open_schedule_window)
+            schedule_button = Button(btn_inner, image=self.photoimg8, bg='#2B2B52', cursor='hand2',
+                                    activebackground='#483D8B', borderwidth=0, command=self.open_schedule_window)
         except:
             schedule_button = Button(btn_inner, text="Schedule", command=self.open_schedule_window)
         schedule_button.pack(side=LEFT, padx=15)
@@ -215,8 +215,8 @@ class TelegramBotSender:
         try:
             img5 = Image.open(resource_path("assets\\Clear.png"))
             self.photoimg5 = ImageTk.PhotoImage(img5)
-            clear_button = Button(btn_inner, image=self.photoimg5, bg='dodger blue2', cursor='hand2',
-                                activebackground='dodger blue2', borderwidth=0, command=self.clear)
+            clear_button = Button(btn_inner, image=self.photoimg5, bg='#2B2B52', cursor='hand2',
+                                activebackground='#483D8B', borderwidth=0, command=self.clear)
         except:
             clear_button = Button(btn_inner, text="Clear", command=self.clear)
         clear_button.pack(side=LEFT, padx=15)
@@ -226,11 +226,22 @@ class TelegramBotSender:
         try:
             img6 = Image.open(resource_path("assets\\exit.png"))
             self.photoimg6 = ImageTk.PhotoImage(img6)
-            exit_button = Button(btn_inner, image=self.photoimg6, bg='dodger blue2', cursor='hand2',
-                                activebackground='dodger blue2', borderwidth=0, command=self.iexit)
+            exit_button = Button(btn_inner, image=self.photoimg6, bg='#2B2B52', cursor='hand2',
+                                activebackground='#483D8B', borderwidth=0, command=self.iexit)
         except:
             exit_button = Button(btn_inner, text="Exit", command=self.iexit)
         exit_button.pack(side=LEFT, padx=15)
+        
+        def bind_hover(btn, normal_bg, hover_bg):
+            btn.bind('<Enter>', lambda e: btn.config(bg=hover_bg))
+            btn.bind('<Leave>', lambda e: btn.config(bg=normal_bg))
+            
+        bind_hover(speak_button, '#2B2B52', '#483D8B')
+        bind_hover(attech_button, '#2B2B52', '#483D8B')
+        bind_hover(send_button, '#2B2B52', '#483D8B')
+        bind_hover(schedule_button, '#2B2B52', '#483D8B')
+        bind_hover(clear_button, '#2B2B52', '#483D8B')
+        bind_hover(exit_button, '#2B2B52', '#483D8B')
         ToolTip(exit_button, "Exit Application <Control-q>")
         messagebox.showwarning("Telegram Delivery Info",
                                     "Reciever must Start the chat with chatbot named @devvaidya36bot Otherwise it will give error",parent=self.root)

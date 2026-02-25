@@ -50,12 +50,18 @@ class face_recognition:
         self.f_lbl1 = Label(self.root, image=self.photoimg_bottom)
         self.f_lbl1.place(relx=0.41, rely=0.065, relwidth=0.59, relheight=0.935)
 
-        # Buttons
-        self.b1 = Button(self.root, text='FACE RECOGNITION', cursor='hand2', font=('times new roman', 15, 'bold'), activebackground='yellow', activeforeground='blue', bg='green', fg='red', command=self.face_recog)
-        self.b1.place(relx=0.622, rely=0.897, relwidth=0.153, relheight=0.056)
+        def bind_hover(btn, normal_bg, hover_bg):
+            btn.bind('<Enter>', lambda e: btn.config(bg=hover_bg))
+            btn.bind('<Leave>', lambda e: btn.config(bg=normal_bg))
 
-        self.b2 = Button(self.root, text='Recordings', cursor='hand2', font=('times new roman', 15, 'bold'), activebackground='yellow', activeforeground='blue', bg='blue', fg='white', command=self.open_recordings)
+        # Buttons
+        self.b1 = Button(self.root, text='FACE RECOGNITION', cursor='hand2', font=('times new roman', 15, 'bold'), activebackground='#32CD32', activeforeground='white', bg='#228B22', fg='white', command=self.face_recog)
+        self.b1.place(relx=0.622, rely=0.897, relwidth=0.153, relheight=0.056)
+        bind_hover(self.b1, '#228B22', '#32CD32')
+
+        self.b2 = Button(self.root, text='Recordings', cursor='hand2', font=('times new roman', 15, 'bold'), activebackground='#4169E1', activeforeground='white', bg='#0000CD', fg='white', command=self.open_recordings)
         self.b2.place(relx=0.435, rely=0.897, relwidth=0.153, relheight=0.056)
+        bind_hover(self.b2, '#0000CD', '#4169E1')
 
         # Resize Binding
         self.resize_timer = None

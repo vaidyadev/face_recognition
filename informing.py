@@ -65,26 +65,33 @@ class Inform:
         self.photoimg5 = ImageTk.PhotoImage(self.org_img_what.resize((400,410)))
         self.photoimg6 = ImageTk.PhotoImage(self.org_img_tel.resize((400,410)))
 
+        def bind_hover(btn, normal_bg, hover_bg):
+            btn.bind('<Enter>', lambda e: btn.config(bg=hover_bg))
+            btn.bind('<Leave>', lambda e: btn.config(bg=normal_bg))
+
         # 1. MAIL
         self.btn_mail_img = Button(self.root, image=self.photoimg4, cursor='hand2', command=self.email)
         self.btn_mail_img.place(relx=0.03, rely=0.35, relwidth=0.29, relheight=0.50)
         
-        self.btn_mail_txt = Button(self.root, text="Inform Via Mail", cursor='hand2', font=('times new roman', 20, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green', command=self.email)
+        self.btn_mail_txt = Button(self.root, text="Inform Via Mail", cursor='hand2', font=('times new roman', 20, 'bold'), bg='#2B2B52', fg='white', activebackground="#483D8B", activeforeground='white', command=self.email)
         self.btn_mail_txt.place(relx=0.03, rely=0.86, relwidth=0.29, relheight=0.08)
+        bind_hover(self.btn_mail_txt, '#2B2B52', '#483D8B')
 
         # 2. WHATSAPP
         self.btn_what_img = Button(self.root, image=self.photoimg5, cursor='hand2', command=self.whatsapp)
         self.btn_what_img.place(relx=0.35, rely=0.35, relwidth=0.29, relheight=0.50)
         
-        self.btn_what_txt = Button(self.root, text="Inform Via Whatsapp", cursor='hand2', font=('times new roman', 20, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green', command=self.whatsapp)
+        self.btn_what_txt = Button(self.root, text="Inform Via Whatsapp", cursor='hand2', font=('times new roman', 20, 'bold'), bg='#228B22', fg='white', activebackground="#32CD32", activeforeground='white', command=self.whatsapp)
         self.btn_what_txt.place(relx=0.35, rely=0.86, relwidth=0.29, relheight=0.08)
+        bind_hover(self.btn_what_txt, '#228B22', '#32CD32')
 
         # 3. TELEGRAM
         self.btn_tel_img = Button(self.root, image=self.photoimg6, cursor='hand2', command=self.telegram)
         self.btn_tel_img.place(relx=0.67, rely=0.35, relwidth=0.29, relheight=0.50)
         
-        self.btn_tel_txt = Button(self.root, text="Inform Via Telegram", cursor='hand2', font=('times new roman', 20, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green', command=self.telegram)
+        self.btn_tel_txt = Button(self.root, text="Inform Via Telegram", cursor='hand2', font=('times new roman', 20, 'bold'), bg='slateblue2', fg='white', activebackground="slateblue1", activeforeground='white', command=self.telegram)
         self.btn_tel_txt.place(relx=0.67, rely=0.86, relwidth=0.29, relheight=0.08)
+        bind_hover(self.btn_tel_txt, 'slateblue2', 'slateblue1')
 
         # Resize Binding
         self.resize_timer = None

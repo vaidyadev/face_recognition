@@ -57,10 +57,15 @@ class train:
         self.f_lbl = Label(self.root)
         self.f_lbl.place(relx=0, rely=0.07, relwidth=1, relheight=0.38)
 
+        def bind_hover(btn, normal_bg, hover_bg):
+            btn.bind('<Enter>', lambda e: btn.config(bg=hover_bg))
+            btn.bind('<Leave>', lambda e: btn.config(bg=normal_bg))
+
         # ================== Train Button ==================
         self.b1=Button(self.root,text='TRAIN DATA',cursor='hand2',font=('times new roman',35,'bold'),
-                       activebackground='red',activeforeground='green',bg='darkblue',fg='white',command=self.train_classifier)
+                       activebackground='#FF6347',activeforeground='white',bg='#B22222',fg='white',command=self.train_classifier)
         self.b1.place(relx=0, rely=0.45, relwidth=1, relheight=0.10)
+        bind_hover(self.b1, '#B22222', '#FF6347')
 
         # ================== Bottom Image ==================
         # Load and keep original

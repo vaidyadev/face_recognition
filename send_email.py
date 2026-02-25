@@ -32,7 +32,7 @@ class emailsender:
         self.root.minsize(800, 600)
         self.root.title("Email Sender")
         self.root.resizable(True, True)
-        self.root.config(bg='dodger blue2')
+        self.root.config(bg='#2B2B52')
         self.root.wm_iconbitmap(resource_path('assets\\email.ico'))
 
         # ------------------ VARIABLES ------------------ #
@@ -66,7 +66,7 @@ class emailsender:
         ToolTip(help_button, "Help For Shortcuts <Control-h> ")
 
         title_label = Label(title_frame, text=' Email Sender',
-                             font=('goudy old style', 28, 'bold'), bg='white', fg='dodger blue2')
+                             font=('goudy old style', 28, 'bold'), bg='white', fg='#2B2B52')
         title_label.grid(row=0, column=1, sticky="w")
         
 
@@ -80,7 +80,7 @@ class emailsender:
         # ------------------ To Email Section ------------------ #
         to_label = LabelFrame(root, text='To (Email Address)',
                               font=('times new roman', 16, 'bold'),
-                              bd=5, fg='white', bg='dodger blue2')
+                              bd=5, fg='white', bg='#2B2B52')
         to_label.grid(row=1, column=0, padx=20, pady=5, sticky="ew")
         to_label.columnconfigure(0, weight=3)
         to_label.columnconfigure(1, weight=1)
@@ -99,7 +99,7 @@ class emailsender:
         # ------------------ Subject Section ------------------ #
         subject_label = LabelFrame(root, text='Subject',
                                    font=('times new roman', 16, 'bold'),
-                                   bd=5, fg='white', bg='dodger blue2')
+                                   bd=5, fg='white', bg='#2B2B52')
         subject_label.grid(row=2, column=0, pady=5, padx=20, sticky="ew")
         subject_label.columnconfigure(0, weight=1)
 
@@ -110,7 +110,7 @@ class emailsender:
         # ------------------ Compose Section ------------------ #
         compose_label = LabelFrame(root, text='Compose Email',
                                    font=('times new roman', 16, 'bold'),
-                                   bd=5, fg='white', bg='dodger blue2')
+                                   bd=5, fg='white', bg='#2B2B52')
         compose_label.grid(row=3, column=0, pady=5, padx=20, sticky="nsew")
         compose_label.columnconfigure(0, weight=0) # Buttons don't expand
         compose_label.columnconfigure(1, weight=0)
@@ -122,8 +122,8 @@ class emailsender:
         self.photoimg2 = ImageTk.PhotoImage(img2)
 
         speak_button = Button(compose_label, text='  Speak', image=self.photoimg2, compound=LEFT,
-                              font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='dodger blue2',
-                              activebackground='dodger blue2', command=self.speak)
+                              font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='#2B2B52', fg='white',
+                              activebackground='#483D8B', activeforeground='white', command=self.speak)
         speak_button.grid(row=0, column=0, padx=5, pady=5, sticky="w")
         ToolTip(speak_button, "Speak <Control-m>")
 
@@ -131,8 +131,8 @@ class emailsender:
         img3 = img3.resize((48, 48), Image.Resampling.LANCZOS)
         self.photoimg3 = ImageTk.PhotoImage(img3)
         attech_button = Button(compose_label, text='  Attachments', image=self.photoimg3, compound=LEFT,
-                               font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='dodger blue2',
-                               activebackground='dodger blue2', command=self.attechment)
+                               font=('arial', 12, 'bold'), cursor='hand2', bd=0, bg='#2B2B52', fg='white',
+                               activebackground='#483D8B', activeforeground='white', command=self.attechment)
         attech_button.grid(row=0, column=1, padx=5, pady=5, sticky="w")
         ToolTip(attech_button, "Attechments for Email <Control-a>")
 
@@ -154,40 +154,51 @@ class emailsender:
         self.textarea.config(yscrollcommand=scrollbar.set)
 
         # ------------------ Action Buttons ------------------ #
-        button_frame = Frame(root, bg='dodger blue2')
+        button_frame = Frame(root, bg='#2B2B52')
         button_frame.grid(row=4, column=0, pady=10, sticky="ew")
         
         # Center the buttons
-        btn_inner = Frame(button_frame, bg='dodger blue2')
+        btn_inner = Frame(button_frame, bg='#2B2B52')
         btn_inner.pack(pady=5)
 
         img4 = Image.open(resource_path("assets\\email_send.png"))
         self.photoimg4 = ImageTk.PhotoImage(img4)
-        send_button = Button(btn_inner, image=self.photoimg4, bg='dodger blue2', cursor='hand2',
-                             activebackground='dodger blue2', borderwidth=0, command=self.send_mail)
+        send_button = Button(btn_inner, image=self.photoimg4, bg='#2B2B52', cursor='hand2',
+                             activebackground='#483D8B', borderwidth=0, command=self.send_mail)
         send_button.pack(side=LEFT, padx=15)
         ToolTip(send_button, "Send Email <Control-Return>")
 
         img8 = Image.open(resource_path("assets\\scheduled.png"))
         self.photoimg8 = ImageTk.PhotoImage(img8)
-        schedule_button = Button(btn_inner, image=self.photoimg8, bg='dodger blue2', cursor='hand2',
-                                 activebackground='dodger blue2', borderwidth=0, command=self.open_schedule_window)
+        schedule_button = Button(btn_inner, image=self.photoimg8, bg='#2B2B52', cursor='hand2',
+                                 activebackground='#483D8B', borderwidth=0, command=self.open_schedule_window)
         schedule_button.pack(side=LEFT, padx=15)
         ToolTip(schedule_button, "Schedule E-mail Sending <Control-s>")
 
         img5 = Image.open(resource_path("assets\\Clear.png"))
         self.photoimg5 = ImageTk.PhotoImage(img5)
 
-        clear_button = Button(btn_inner, image=self.photoimg5, bg='dodger blue2', cursor='hand2',
-                              activebackground='dodger blue2', borderwidth=0, command=self.clear)
+        clear_button = Button(btn_inner, image=self.photoimg5, bg='#2B2B52', cursor='hand2',
+                              activebackground='#483D8B', borderwidth=0, command=self.clear)
         clear_button.pack(side=LEFT, padx=15)
         ToolTip(clear_button, "Clear All Fields <Control-l>")
 
         img6 = Image.open(resource_path("assets\\exit.png"))
         self.photoimg6 = ImageTk.PhotoImage(img6)
-        exit_button = Button(btn_inner, image=self.photoimg6, bg='dodger blue2', cursor='hand2',
-                             activebackground='dodger blue2', borderwidth=0, command=self.iexit)
+        exit_button = Button(btn_inner, image=self.photoimg6, bg='#2B2B52', cursor='hand2',
+                             activebackground='#483D8B', borderwidth=0, command=self.iexit)
         exit_button.pack(side=LEFT, padx=15)
+        
+        def bind_hover(btn, normal_bg, hover_bg):
+            btn.bind('<Enter>', lambda e: btn.config(bg=hover_bg))
+            btn.bind('<Leave>', lambda e: btn.config(bg=normal_bg))
+            
+        bind_hover(speak_button, '#2B2B52', '#483D8B')
+        bind_hover(attech_button, '#2B2B52', '#483D8B')
+        bind_hover(send_button, '#2B2B52', '#483D8B')
+        bind_hover(schedule_button, '#2B2B52', '#483D8B')
+        bind_hover(clear_button, '#2B2B52', '#483D8B')
+        bind_hover(exit_button, '#2B2B52', '#483D8B')
         ToolTip(exit_button, "Exit Application <Control-q>")
         messagebox.showwarning("Email Delivery Info",
                                 "Our email may initially appear in receiver's spam or junk folder.\n\n"

@@ -23,7 +23,7 @@ class msgsender:
         self.root.minsize(850, 600)
         self.root.title("Whatsapp Sender")
         self.root.resizable(True, True)
-        self.root.config(bg='dodger blue2')
+        self.root.config(bg='#2B2B52')
         self.root.wm_iconbitmap(resource_path('assets\\whatsapp.ico'))
 
         # ------------------ VARIABLES ------------------ #
@@ -52,13 +52,13 @@ class msgsender:
                                 activebackground='white', borderwidth=0, command=self.show_shortcuts)
         help_button.grid(row=0, column=0, padx=15, pady=5)
         ToolTip(help_button, "Help For Shortcuts <Control-h> ")
-        title_label = Label(title_frame, text=' Whatsapp Message Sender',font=('goudy old style', 28, 'bold'), bg='white', fg='dodger blue2')
+        title_label = Label(title_frame, text=' Whatsapp Message Sender',font=('goudy old style', 28, 'bold'), bg='white', fg='#2B2B52')
         title_label.grid(row=0, column=1, sticky="w")
 
         # ------------------ To Phone Section ------------------ #
         to_label = LabelFrame(root, text='To (Phone Number)',
                               font=('times new roman', 16, 'bold'),
-                              bd=5, fg='white', bg='dodger blue2')
+                              bd=5, fg='white', bg='#2B2B52')
         to_label.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
         to_label.columnconfigure(0, weight=1)
         to_label.columnconfigure(1, weight=1)
@@ -79,7 +79,7 @@ class msgsender:
         # ------------------ Subject Section ------------------ #
         subject_label=LabelFrame(root, text='Subject',
                               font=('times new roman', 16, 'bold'),
-                              bd=5, fg='white', bg='dodger blue2')
+                              bd=5, fg='white', bg='#2B2B52')
         subject_label.grid(row=3, column=0, pady=5, padx=20, sticky="ew")
         subject_label.columnconfigure(0, weight=1)
 
@@ -90,7 +90,7 @@ class msgsender:
         # ------------------ Compose Section ------------------ #
         compose_label = LabelFrame(root, text='Compose Message ',
                               font=('times new roman', 16, 'bold'),
-                              bd=5, fg='white', bg='dodger blue2')
+                              bd=5, fg='white', bg='#2B2B52')
         compose_label.grid(row=4, column=0, pady=10, padx=20, sticky="nsew")
         compose_label.columnconfigure(0, weight=1)
         compose_label.rowconfigure(1, weight=1)
@@ -100,7 +100,7 @@ class msgsender:
         self.photoimg2 = ImageTk.PhotoImage(img2)
 
         speak_button=Button(compose_label,text='  Speak',image=self.photoimg2,compound=LEFT,
-                            font=('arial',18,'bold'),cursor='hand2',bd=0,bg='dodger blue2',activebackground='dodger blue2',command=self.speak)
+                            font=('arial',18,'bold'),cursor='hand2',bd=0,bg='#2B2B52',fg='white',activebackground='#483D8B',activeforeground='white',command=self.speak)
         speak_button.grid(row=0,column=0, sticky="w", padx=5)
         ToolTip(speak_button, "Speak <Control-m>")
         
@@ -121,18 +121,18 @@ class msgsender:
         self.textarea.config(yscrollcommand=scrollbar.set)
 
         # ------------------ Action Buttons ------------------ #
-        button_frame = Frame(root, bg='dodger blue2')
+        button_frame = Frame(root, bg='#2B2B52')
         button_frame.grid(row=5, column=0, pady=10, sticky="ew")
         
         # Center buttons
-        btn_inner = Frame(button_frame, bg='dodger blue2')
+        btn_inner = Frame(button_frame, bg='#2B2B52')
         btn_inner.pack(pady=5)
         
         img4 = Image.open(resource_path("assets\\email_send.png"))
         self.photoimg4 = ImageTk.PhotoImage(img4)
 
-        send_button = Button(btn_inner, image=self.photoimg4, bg='dodger blue2', cursor='hand2',
-                                activebackground='dodger blue2', borderwidth=0,command=self.send_whatsapp)
+        send_button = Button(btn_inner, image=self.photoimg4, bg='#2B2B52', cursor='hand2',
+                                activebackground='#483D8B', borderwidth=0,command=self.send_whatsapp)
         send_button.pack(side=LEFT, padx=15)
         # Add tooltip to send button
         ToolTip(send_button, "Send WhatsApp message <Control-Return>")
@@ -140,16 +140,16 @@ class msgsender:
 
         img8 = Image.open(resource_path("assets\\scheduled.png"))
         self.photoimg8 = ImageTk.PhotoImage(img8)
-        schedule_button = Button(btn_inner, image=self.photoimg8, bg='dodger blue2', cursor='hand2',
-                                 activebackground='dodger blue2', borderwidth=0, command=self.open_schedule_window)
+        schedule_button = Button(btn_inner, image=self.photoimg8, bg='#2B2B52', cursor='hand2',
+                                 activebackground='#483D8B', borderwidth=0, command=self.open_schedule_window)
         schedule_button.pack(side=LEFT, padx=15)
         ToolTip(schedule_button, "Schedule WhatsApp Message <Control-s>")
 
         img5 = Image.open(resource_path("assets\\Clear.png"))
         self.photoimg5 = ImageTk.PhotoImage(img5)
 
-        clear_button = Button(btn_inner, image=self.photoimg5, bg='dodger blue2', cursor='hand2',
-                                activebackground='dodger blue2', borderwidth=0,command=self.clear)
+        clear_button = Button(btn_inner, image=self.photoimg5, bg='#2B2B52', cursor='hand2',
+                                activebackground='#483D8B', borderwidth=0,command=self.clear)
         clear_button.pack(side=LEFT, padx=15)
         # Add tooltip to clear button
         ToolTip(clear_button, "Clear all fields <Control-l>")
@@ -157,9 +157,19 @@ class msgsender:
         img6 = Image.open(resource_path("assets\\exit.png"))
         self.photoimg6 = ImageTk.PhotoImage(img6)
 
-        exit_button = Button(btn_inner, image=self.photoimg6, bg='dodger blue2', cursor='hand2',
-                                activebackground='dodger blue2', borderwidth=0,command=self.iexit)
+        exit_button = Button(btn_inner, image=self.photoimg6, bg='#2B2B52', cursor='hand2',
+                                activebackground='#483D8B', borderwidth=0,command=self.iexit)
         exit_button.pack(side=LEFT, padx=15)
+        
+        def bind_hover(btn, normal_bg, hover_bg):
+            btn.bind('<Enter>', lambda e: btn.config(bg=hover_bg))
+            btn.bind('<Leave>', lambda e: btn.config(bg=normal_bg))
+            
+        bind_hover(speak_button, '#2B2B52', '#483D8B')
+        bind_hover(send_button, '#2B2B52', '#483D8B')
+        bind_hover(schedule_button, '#2B2B52', '#483D8B')
+        bind_hover(clear_button, '#2B2B52', '#483D8B')
+        bind_hover(exit_button, '#2B2B52', '#483D8B')
         # Add tooltip to exit button
         ToolTip(exit_button, "Exit application <Control-q>")
         messagebox.showwarning("Whatsapp Delivery Info",

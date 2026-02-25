@@ -1,7 +1,7 @@
 {
     "language": "hi",
     "model": "openai/gpt-oss-120b:free",
-    "theme_mode": "Light",
+    "theme_mode": "Dark",
     "reasoning_enabled": false,
     "thinking_budget": 1024
 }

@@ -72,7 +72,7 @@ class face_recog:
         self.root.bind("<Configure>", self.on_resize)
 
         
-        self.title_lbl = Label(self.root, text='', font=('times new roman', 30, 'bold'), bg='white', fg='red', borderwidth=0)
+        self.title_lbl = Label(self.root, text='', font=('times new roman', 30, 'bold'), bg='white', fg='blue2', borderwidth=0)
         self.title_lbl.place(relx=0.09, rely=0.191, relwidth=0.82, relheight=0.065)
         
         self.time_lbl = Label(self.root, font=('times new roman', 15, 'bold'), bg='white', fg='green', borderwidth=0)
@@ -167,9 +167,21 @@ class face_recog:
         text_rely = rely + relh - 0.015 # Slight overlap fix
         
         b_text = Button(self.bg_lbl, text=title, cursor='hand2',
-                       font=('times new roman', 13, 'bold'), bg='darkblue', fg='white',
-                       activebackground="red", activeforeground='green', command=command)
+                       font=('times new roman', 13, 'bold'), bg='#8B0000', fg='white',
+                       activebackground="#B22222", activeforeground='white', command=command)
         b_text.place(relx=relx, rely=text_rely, relwidth=relw, relheight=btn_h_rel)
+        
+        # Hover effect functions
+        def on_enter(e):
+            b_text['bg'] = '#B22222'
+        
+        def on_leave(e):
+            b_text['bg'] = '#8B0000'
+            
+        b_img.bind('<Enter>', on_enter)
+        b_img.bind('<Leave>', on_leave)
+        b_text.bind('<Enter>', on_enter)
+        b_text.bind('<Leave>', on_leave)
         
         # Store reference to original image and widgets for resizing/lifting
         if not hasattr(self, 'btn_images'): self.btn_images = []

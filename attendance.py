@@ -308,8 +308,8 @@ class attendance:
             self.h_lbl2.place(relx=0.46, rely=0, relwidth=0.54, relheight=0.25)
 
             # Background Image
-            self.org_img_bg = Image.open(resource_path("college_images\\wp2551980.jpg"))
-            self.bg_lbl = Label(self.root, bg='white')
+        
+            self.bg_lbl = Label(self.root, bg='gold4')
             # Y=170/680 = 0.25. Height=510/680=0.75
             self.bg_lbl.place(relx=0, rely=0.25, relwidth=1.0, relheight=0.75)
             
@@ -403,7 +403,7 @@ class attendance:
 
         Button(
             time_frame, text="⏰", font=("Segoe UI Emoji", 10), width=3,
-            bg='red', fg='blue', cursor="hand2",
+            bg='red', fg='blue',  activebackground='green', activeforeground='yellow',cursor="hand2",
             command=self.open_time_picker
         ).pack(side=LEFT, padx=3)
 
@@ -434,10 +434,25 @@ class attendance:
         for i in range(4): btn_frame.columnconfigure(i, weight=1)
         btn_frame.rowconfigure(0, weight=1)
 
-        Button(btn_frame, text="Save", command=self.add_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=0, sticky='NSEW')
-        Button(btn_frame, text="Update", command=self.update_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=1, sticky='NSEW')
-        Button(btn_frame, text="Delete", command=self.delete_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=2, sticky='NSEW')
-        Button(btn_frame, text="Reset", command=self.reset_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green').grid(row=0, column=3, sticky='NSEW')
+        def bind_hover(btn, normal_bg, hover_bg):
+            btn.bind('<Enter>', lambda e: btn.config(bg=hover_bg))
+            btn.bind('<Leave>', lambda e: btn.config(bg=normal_bg))
+
+        save_btn_att = Button(btn_frame, text="Save", command=self.add_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='#228B22', fg='white', activebackground="#32CD32", activeforeground='white')
+        save_btn_att.grid(row=0, column=0, sticky='NSEW')
+        bind_hover(save_btn_att, '#228B22', '#32CD32')
+        
+        update_btn_att = Button(btn_frame, text="Update", command=self.update_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='#0000CD', fg='white', activebackground="#4169E1", activeforeground='white')
+        update_btn_att.grid(row=0, column=1, sticky='NSEW')
+        bind_hover(update_btn_att, '#0000CD', '#4169E1')
+        
+        delete_btn_att = Button(btn_frame, text="Delete", command=self.delete_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='#B22222', fg='white', activebackground="#FF6347", activeforeground='white')
+        delete_btn_att.grid(row=0, column=2, sticky='NSEW')
+        bind_hover(delete_btn_att, '#B22222', '#FF6347')
+        
+        reset_btn_att = Button(btn_frame, text="Reset", command=self.reset_data, cursor='hand2', font=('times new roman', 11, 'bold'), bg='#FF8C00', fg='white', activebackground="#FFA500", activeforeground='white')
+        reset_btn_att.grid(row=0, column=3, sticky='NSEW')
+        bind_hover(reset_btn_att, '#FF8C00', '#FFA500')
 
         # --- Button Frame 2 (Report/Inform) ---
         
@@ -446,39 +461,53 @@ class attendance:
         for i in range(2): btn_frame3.columnconfigure(i, weight=1)
         for i in range(2): btn_frame3.rowconfigure(i, weight=1)
         
-        Button(btn_frame3, text="Inform Students", command=self.inform, cursor='hand2', font=('times new roman', 11, 'bold'), bg='purple', fg='white').grid(row=0, column=0, sticky='NSEW')
-        Button(btn_frame3, text="Attendance Report", command=self.plot_attendance_graph, cursor='hand2', font=('times new roman', 11, 'bold'), bg='purple', fg='white').grid(row=0, column=1, sticky='NSEW')
-        Button(
+        inform_btn = Button(btn_frame3, text="Inform Students", command=self.inform, cursor='hand2', font=('times new roman', 11, 'bold'), bg='#483D8B', fg='white', activebackground="#6A5ACD", activeforeground='white')
+        inform_btn.grid(row=0, column=0, sticky='NSEW')
+        bind_hover(inform_btn, '#483D8B', '#6A5ACD')
+        
+        report_btn = Button(btn_frame3, text="Attendance Report", command=self.plot_attendance_graph, cursor='hand2', font=('times new roman', 11, 'bold'), bg='#800080', fg='white', activebackground="#BA55D3", activeforeground='white')
+        report_btn.grid(row=0, column=1, sticky='NSEW')
+        bind_hover(report_btn, '#800080', '#BA55D3')
+        
+        export_att_btn = Button(
             btn_frame3,
             text="Export Attendance",
             command=self.export_data,
             cursor='hand2',
             font=('times new roman', 11, 'bold'),
-            bg='orange',
-            fg='white'
-        ).grid(
+            bg='#D2691E',
+            fg='white',
+            activebackground="#CD853F",
+            activeforeground='white'
+        )
+        export_att_btn.grid(
             row=1,
             column=0,
             columnspan=1,  
             sticky="NSEW",    
             pady=2
         )
+        bind_hover(export_att_btn, '#D2691E', '#CD853F')
 
-        Button(
+        check_low_btn = Button(
             btn_frame3,
             text="Check Low Attendance",
             command=self.check_attendance_alert,
             cursor='hand2',
             font=('times new roman', 11, 'bold'),
-            bg='red',
-            fg='white'
-        ).grid(
+            bg='#DC143C',
+            fg='white',
+            activebackground="#FF69B4",
+            activeforeground='white'
+        )
+        check_low_btn.grid(
             row=1,
             column=1,
             columnspan=1, 
             sticky="NSEW",    
             pady=2
         )
+        bind_hover(check_low_btn, '#DC143C', '#FF69B4')
 
         # --- Right Frame (Table) ---
         right_frame = LabelFrame(main_frame, bd=2, bg='white', relief=RIDGE, text='Attendance Details', font=('times new roman', 12, 'bold'))
@@ -493,7 +522,7 @@ class attendance:
         for i in range(3, 6): search_frame.columnconfigure(i, weight=1)
         search_frame.rowconfigure(0, weight=1)
 
-        search_label = Label(search_frame, text='Search By :', font=('times new roman', 12, 'bold'), bg='red', fg='white')
+        search_label = Label(search_frame, text='Search By :', font=('times new roman', 12, 'bold'), bg='red4', fg='white')
         search_label.grid(row=0, column=0, padx=5, sticky='NSEW')
 
         search_combo = ttk.Combobox(search_frame, font=('times new roman', 12, 'bold'), width=12, state='read', textvariable=self.var_search_combo)
@@ -507,15 +536,19 @@ class attendance:
         search_entry.grid(row=0, column=2, padx=2, pady=3, sticky='EW')
         search_entry.bind("<KeyRelease>", self.advanced_search)
 
-        reset_btn = Button(search_frame, text="Reset", cursor='hand2', font=('times new roman', 10, 'bold'), bg='green', fg='white', activebackground="red", activeforeground='green', command=self.reset_search)
-        reset_btn.grid(row=0, column=3, padx=3, sticky='NSEW')
+        reset_search_btn = Button(search_frame, text="Reset", cursor='hand2', font=('times new roman', 10, 'bold'), bg='#228B22', fg='white', activebackground="#32CD32", activeforeground='white', command=self.reset_search)
+        reset_search_btn.grid(row=0, column=3, padx=3, sticky='NSEW')
+        bind_hover(reset_search_btn, '#228B22', '#32CD32')
         
         # Added Refresh Button
-        refresh_btn = Button(search_frame, text="Refresh", cursor='hand2', font=('times new roman', 10, 'bold'), bg='darkblue', fg='white', activebackground="red", activeforeground='green', command=lambda: self.refresh_animation(self.auto_load_data)
+        refresh_btn = Button(search_frame, text="Refresh", cursor='hand2', font=('times new roman', 10, 'bold'), bg='#0000CD', fg='white', activebackground="#4169E1", activeforeground='white', command=lambda: self.refresh_animation(self.auto_load_data)
         )
         refresh_btn.grid(row=0, column=4, padx=3, sticky='NSEW')
+        bind_hover(refresh_btn, '#0000CD', '#4169E1')
         
-        Button(search_frame, text="Filter", font=("times new roman", 10, "bold"), bg="purple", fg="white", cursor='hand2', activebackground="#5d57b4", activeforeground='black', command=self.open_filter_window).grid(row=0, column=5, padx=3, sticky='NSEW')
+        filter_att_btn = Button(search_frame, text="Filter", font=("times new roman", 10, "bold"), bg="#8B008B", fg="white", cursor='hand2', activebackground="#DA70D6", activeforeground='white', command=self.open_filter_window)
+        filter_att_btn.grid(row=0, column=5, padx=3, sticky='NSEW')
+        bind_hover(filter_att_btn, '#8B008B', '#DA70D6')
 
         # --- Table Frame ---
         table_frame = Frame(right_frame, bd=2, bg='white', relief=RIDGE)

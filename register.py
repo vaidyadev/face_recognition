@@ -41,7 +41,7 @@ class register:
         self.root.bind("<Configure>", self.on_resize)
 
         # Main Container to hold both the left image and the form
-        self.main_container = Frame(self.root, bg='white')
+        self.main_container = Frame(self.root, bg='maroon1')
         self.main_container.place(relx=0.5, rely=0.5, anchor=CENTER, width=1100, height=500)
 
         img4 = Image.open(resource_path("college_images\\reg.jpg"))
@@ -51,38 +51,38 @@ class register:
         left_img.place(x=0, y=0, width=400, height=500)
 
         # Form frame now sits inside the container
-        frame=Frame(self.main_container, bg='white')
+        frame=Frame(self.main_container, bg='maroon1')
         frame.place(x=400, y=0, width=700, height=500)
 
-        register_lbl=Label(frame,text='REGISTER HERE',font=('times new roman',20,'bold'),fg='green',bg='white')
+        register_lbl=Label(frame,text='REGISTER HERE',font=('times new roman',20,'bold'),fg='green',bg='maroon1')
         register_lbl.place(x=20,y=20)
 
-        fname=Label(frame,text='First Name',font=('times new roman',15,'bold'),bg='white')
+        fname=Label(frame,text='First Name',font=('times new roman',15,'bold'),bg='maroon1')
         fname.place(x=50,y=70)
 
         self.f_name=ttk.Entry(frame,font=('times new roman',15,'bold'),textvariable=self.var_fname)
         self.f_name.place(x=50,y=110,width=250)
 
-        lname=Label(frame,text='Last Name',font=('times new roman',15,'bold'),bg='white')
+        lname=Label(frame,text='Last Name',font=('times new roman',15,'bold'),bg='maroon1')
         lname.place(x=350,y=70)
 
         self.l_name=ttk.Entry(frame,font=('times new roman',15,'bold'),textvariable=self.var_lname)
         self.l_name.place(x=350,y=110,width=250)
 
 
-        contact=Label(frame,text='Contact',font=('times new roman',15,'bold'),bg='white')
+        contact=Label(frame,text='Contact',font=('times new roman',15,'bold'),bg='maroon1')
         contact.place(x=50,y=150)
 
         self.contact=ttk.Entry(frame,font=('times new roman',15,'bold'),textvariable=self.var_contact)
         self.contact.place(x=50,y=190,width=250)
 
-        email=Label(frame,text='Email',font=('times new roman',15,'bold'),bg='white')
+        email=Label(frame,text='Email',font=('times new roman',15,'bold'),bg='maroon1')
         email.place(x=350,y=150)
 
         self.email=ttk.Entry(frame,font=('times new roman',15,'bold'),textvariable=self.var_email)
         self.email.place(x=350,y=190,width=250)
 
-        security_q=Label(frame,text='Select Security Questions',font=('times new roman',15,'bold'),bg='white')
+        security_q=Label(frame,text='Select Security Questions',font=('times new roman',15,'bold'),bg='maroon1')
         security_q.place(x=50,y=230)
 
         security_q_combo=ttk.Combobox(frame,font=('times new roman', 15, 'bold'),state='read',textvariable=self.var_security)
@@ -90,19 +90,19 @@ class register:
         security_q_combo.set("Select")
         security_q_combo.place(x=50,y=270,width=250)
 
-        security_a=Label(frame,text='Security Answer',font=('times new roman',15,'bold'),bg='white')
+        security_a=Label(frame,text='Security Answer',font=('times new roman',15,'bold'),bg='maroon1')
         security_a.place(x=350,y=230)
 
         self.security_a=ttk.Entry(frame,font=('times new roman',15,'bold'),textvariable=self.var_securitya)
         self.security_a.place(x=350,y=270,width=250)
 
-        pasw=Label(frame,text='Password',font=('times new roman',15,'bold'),bg='white')
+        pasw=Label(frame,text='Password',font=('times new roman',15,'bold'),bg='maroon1')
         pasw.place(x=50,y=310)
 
         self.pasw=ttk.Entry(frame,font=('times new roman',15,'bold'),textvariable=self.var_pass,show='*')
         self.pasw.place(x=50,y=350,width=250)
         self.pasw.bind('<KeyRelease>', self.check_password_strength)
-        self.strength_label = Label(frame, text="", font=('times new roman', 12, 'bold'), fg='red', bg='white')
+        self.strength_label = Label(frame, text="", font=('times new roman', 12, 'bold'), fg='red', bg='maroon1')
         self.strength_label.place(x=50, y=380)
         # Prevent copy/paste
         self.pasw.bind("<Control-c>", lambda e: "break")
@@ -114,11 +114,11 @@ class register:
         self.hide_icon = ImageTk.PhotoImage(Image.open(resource_path("college_images/pass_hide.png")).resize((25, 25), Image.Resampling.LANCZOS))
 
         # Password toggle button
-        self.show_hide_btn = Button(frame, image=self.show_icon, command=self.toggle_password, bg='white', bd=0, activebackground='white', cursor='hand2')
+        self.show_hide_btn = Button(frame, image=self.show_icon, command=self.toggle_password, bg='maroon1', bd=0, activebackground='maroon1', cursor='hand2')
         self.show_hide_btn.place(x=300, y=350)
         self.password_visible = False
 
-        cnpass=Label(frame,text='Confirm Password',font=('times new roman',15,'bold'),bg='white')
+        cnpass=Label(frame,text='Confirm Password',font=('times new roman',15,'bold'),bg='maroon1')
         cnpass.place(x=350,y=310)
 
         self.cnpass=ttk.Entry(frame,font=('times new roman',15,'bold'),textvariable=self.var_cpass,show='*')
@@ -132,17 +132,17 @@ class register:
         self.show_icon2 = ImageTk.PhotoImage(Image.open(resource_path("college_images/pass_show.png")).resize((25, 25), Image.Resampling.LANCZOS))
         self.hide_icon2 = ImageTk.PhotoImage(Image.open(resource_path("college_images/pass_hide.png")).resize((25, 25), Image.Resampling.LANCZOS))
 
-        self.show_hide_btn2 = Button(frame, image=self.show_icon2, command=self.toggle_confirm_password, bg='white', bd=0, activebackground='white', cursor='hand2')
+        self.show_hide_btn2 = Button(frame, image=self.show_icon2, command=self.toggle_confirm_password, bg='maroon1', bd=0, activebackground='maroon1', cursor='hand2')
         self.show_hide_btn2.place(x=600, y=350)
         self.confirm_password_visible = False
 
     ##########################################check box#########################
-        chk_button = Checkbutton(frame, text="I Agree", onvalue="on", offvalue="off", font=('times new roman', 12, 'bold'), variable=self.var_chk, bg='white')
+        chk_button = Checkbutton(frame, text="I Agree", onvalue="on", offvalue="off", font=('times new roman', 12, 'bold'), variable=self.var_chk, bg='maroon1',activebackground='maroon1')
         chk_button.place(x=50, y=400)
         self.var_chk.set('off')
 
         # Add label for Terms & Conditions
-        terms_lbl = Label(frame, text="Terms & Conditions", font=('times new roman', 12, 'underline'), fg='blue', bg='white', cursor='hand2')
+        terms_lbl = Label(frame, text="Terms & Conditions", font=('times new roman', 12, 'underline'), fg='blue', bg='maroon1', cursor='hand2')
         terms_lbl.place(x=130, y=400)
         terms_lbl.bind("<Button-1>", self.open_terms_conditions)
         ToolTip(terms_lbl,'Click to read terms and conditions')
@@ -150,13 +150,13 @@ class register:
         img1 = Image.open(resource_path("college_images\\register-now-button1.jpg"))
         img1 = img1.resize((150,50), Image.Resampling.LANCZOS)
         self.photoimg1 = ImageTk.PhotoImage(img1)
-        register_img =Button(frame, image=self.photoimg1,bg='white',borderwidth=0,cursor='hand2',font=('times new roman',15,'bold'),activebackground='white',command=self.register)
+        register_img =Button(frame, image=self.photoimg1,bg='maroon1',borderwidth=0,cursor='hand2',font=('times new roman',15,'bold'),activebackground='maroon1',command=self.register)
         register_img.place(x=50, y=440, width=150)
 
         img2 = Image.open(resource_path("college_images\\loginpng.png"))
         img2 = img2.resize((150,50), Image.Resampling.LANCZOS)
         self.photoimg2 = ImageTk.PhotoImage(img2)
-        login_img = Button(frame, image=self.photoimg2,bg='white',borderwidth=0,cursor='hand2',font=('times new roman',15,'bold'),activebackground='white',command=self.login_now)
+        login_img = Button(frame, image=self.photoimg2,bg='maroon1',borderwidth=0,cursor='hand2',font=('times new roman',15,'bold'),activebackground='maroon1',command=self.login_now)
         login_img.place(x=450, y=440, width=150)
         ToolTip(register_img, "Shortcut: Ctrl + Enter")
         ToolTip(login_img, "Shortcut: Ctrl + L")
@@ -194,13 +194,13 @@ class register:
         terms_window.title("Terms and Conditions")
         terms_window.geometry("700x550+100+50")
         terms_window.iconbitmap(resource_path("college_images\\bg1.ico"))
-        terms_window.configure(bg='#f0f8ff')
+        terms_window.configure(bg='maroon1')
         terms_window.resizable(False, False)
 
         # Load logo image
         logo_img = Image.open(resource_path("college_images/facialrecognition (1).png")).resize((100, 100), Image.Resampling.LANCZOS)
         self.logo_photo = ImageTk.PhotoImage(logo_img)
-        logo_label = Label(terms_window, image=self.logo_photo, bg='#f0f8ff')
+        logo_label = Label(terms_window, image=self.logo_photo, bg='maroon1')
         logo_label.pack(pady=(10, 0))
 
         self.marquee_text = "  FACIAL RECOGNITION ATTENDANCE SYSTEM  "
@@ -213,7 +213,7 @@ class register:
         back_btn.pack(pady=10) 
 
         
-        frame = Frame(terms_window, bg="#f0f8ff")
+        frame = Frame(terms_window, bg="maroon1")
         frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
 
         terms_text = Text(frame, wrap=WORD, font=('Segoe UI', 12), bg='white', fg='#333333', insertbackground='black', relief=FLAT, bd=0, padx=15, pady=15)
@@ -337,7 +337,7 @@ class register:
 
         if len(password) < 6:
             strength = "Too Short"
-            color = "red"
+            color = "bisque"
         elif (re.search(r'[A-Z]', password) and
             re.search(r'[a-z]', password) and
             re.search(r'[0-9]', password) and
@@ -347,10 +347,10 @@ class register:
         elif (re.search(r'[A-Za-z]', password) and
             re.search(r'[0-9]', password)):
             strength = "Medium"
-            color = "orange"
+            color = "cyan"
         else:
             strength = "Weak"
-            color = "red"
+            color = "azure"
 
         self.strength_label.config(text=f"Strength: {strength}", fg=color)
 
