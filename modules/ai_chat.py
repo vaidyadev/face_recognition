@@ -14,7 +14,10 @@ from google.genai import types
 from .database import load_attendance_data
 
 from dotenv import load_dotenv
-load_dotenv()
+from utils import get_executable_dir
+
+env_path = os.path.join(get_executable_dir(), '.env')
+load_dotenv(dotenv_path=env_path)
 
 # Initialize Clients
 # OpenRouter Client

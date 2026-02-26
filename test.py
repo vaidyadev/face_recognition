@@ -5,8 +5,10 @@ import time
 # 1. Setup your API Key
 import os
 from dotenv import load_dotenv
+from utils import get_executable_dir
 
-load_dotenv()
+env_path = os.path.join(get_executable_dir(), '.env')
+load_dotenv(dotenv_path=env_path)
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 

@@ -18,7 +18,7 @@ class Inform:
         # --- Header Images ---
         # 46% Left, 54% Right split roughly matches original 625/735 split
         self.org_img_left = Image.open(resource_path("college_images\\com.jpg"))
-        self.org_img_right = Image.open("college_images\\_com2.webp")
+        self.org_img_right = Image.open(resource_path("college_images\\_com2.webp"))
         
         # Placeholders
         self.photoimg = ImageTk.PhotoImage(self.org_img_left.resize((625, 170)))

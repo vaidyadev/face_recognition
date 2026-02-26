@@ -4,9 +4,11 @@ Loads credentials from environment variables (.env file) for security.
 """
 import os
 from dotenv import load_dotenv
+from utils import get_executable_dir
 
 # Load environment variables from .env file
-load_dotenv()
+env_path = os.path.join(get_executable_dir(), '.env')
+load_dotenv(dotenv_path=env_path)
 
 # Database Configuration
 DB_CONFIG = {

@@ -26,8 +26,10 @@ from informing import Inform
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+from utils import get_executable_dir
 
-load_dotenv()
+env_path = os.path.join(get_executable_dir(), '.env')
+load_dotenv(dotenv_path=env_path)
 
 # Global cache for holidays to avoid repeated API calls across instances
 HOLIDAY_CACHE = {}  # year -> set(dates)

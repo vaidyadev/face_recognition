@@ -43,8 +43,8 @@ class ChatBotUI:
                         foreground="green",
                         font=("Arial", 13, "bold"))
 
-        style.configure("TEntry", font=("Arial", 12))
-        style.configure("TCombobox", padding=4, font=('Arial', 11))
+        style.configure("Chat.TEntry", font=("Arial", 12))
+        style.configure("Chat.TCombobox", padding=4, font=('Arial', 11))
 
     def create_layout(self):
         # === grid config ===
@@ -143,7 +143,7 @@ class ChatBotUI:
         main_frame.columnconfigure(0, weight=1)
         main_frame.rowconfigure(1, weight=1)
 
-        self.scroll_y = ttk.Scrollbar(main_frame, orient='vertical')
+        self.scroll_y = ttk.Scrollbar(main_frame, orient='vertical', style="Chat.Vertical.TScrollbar")
         self.scroll_y.grid(row=1, column=1, sticky='ns')
 
         self.text = Text(main_frame, font=('Segoe UI Emoji', 13), wrap=WORD,
@@ -221,7 +221,7 @@ class ChatBotUI:
         self.entry.bind('<Control-Return>', lambda e: self.callbacks['send']())
         
         # Scrollbar for input
-        input_scroll = ttk.Scrollbar(self.input_container, orient="vertical", command=self.entry.yview)
+        input_scroll = ttk.Scrollbar(self.input_container, orient="vertical", command=self.entry.yview, style="Chat.Vertical.TScrollbar")
         input_scroll.grid(row=0, column=1, sticky='ns')
         self.entry.config(yscrollcommand=input_scroll.set)
 
@@ -281,7 +281,7 @@ class ChatBotUI:
         self.search_row.columnconfigure(0, weight=1)
 
         self.search_var = tk.StringVar()
-        self.search_entry = ttk.Entry(self.search_row, textvariable=self.search_var, font=("Arial", 11))
+        self.search_entry = ttk.Entry(self.search_row, textvariable=self.search_var, font=("Arial", 11), style="Chat.TEntry")
         self.search_entry.grid(row=0, column=0, sticky='ew')
         search_button = ttk.Button(self.search_row, text="🔍", style="Color.TButton", width=3, command=self.callbacks['update_search'])
         search_button.grid(row=0, column=1, padx=(5, 0))
@@ -298,7 +298,7 @@ class ChatBotUI:
         self.history_canvas.grid(row=2, column=0, sticky="nsew")
 
         # Scrollbar for the canvas
-        self.history_scrollbar = ttk.Scrollbar(self.history_panel, orient="vertical", command=self.history_canvas.yview)
+        self.history_scrollbar = ttk.Scrollbar(self.history_panel, orient="vertical", command=self.history_canvas.yview, style="Chat.Vertical.TScrollbar")
         self.history_scrollbar.grid(row=2, column=1, sticky="ns")
 
         self.history_canvas.configure(yscrollcommand=self.history_scrollbar.set)
@@ -368,7 +368,7 @@ class ChatBotUI:
         theme_var = tk.StringVar(value=current_theme)
         theme_combo = ttk.Combobox(app_frame, textvariable=theme_var, 
                                    values=["System Default", "Light", "Dark"], 
-                                   state="readonly", font=("Segoe UI", 10))
+                                   state="readonly", font=("Segoe UI", 10), style="Chat.TCombobox")
         theme_combo.pack(fill=X, pady=(5, 10))
 
         # 2. Language
@@ -382,7 +382,7 @@ class ChatBotUI:
                 break
         
         lang_var = tk.StringVar(value=current_lang_name)
-        lang_combo = ttk.Combobox(app_frame, textvariable=lang_var, values=sorted(self.language_options.keys()), state="readonly", font=("Segoe UI", 10))
+        lang_combo = ttk.Combobox(app_frame, textvariable=lang_var, values=sorted(self.language_options.keys()), state="readonly", font=("Segoe UI", 10), style="Chat.TCombobox")
         lang_combo.pack(fill=X, pady=(5, 0))
 
         # 3. Model
@@ -400,7 +400,7 @@ class ChatBotUI:
             current_model = self.callbacks['get_current_model']()
             
         model_var = tk.StringVar(value=current_model)
-        model_combo = ttk.Combobox(app_frame, textvariable=model_var, values=self.model_options, state="readonly", font=("Segoe UI", 10))
+        model_combo = ttk.Combobox(app_frame, textvariable=model_var, values=self.model_options, state="readonly", font=("Segoe UI", 10), style="Chat.TCombobox")
         model_combo.pack(fill=X, pady=(5, 0))
 
         # 4. Reasoning Toggle
@@ -976,35 +976,35 @@ class ChatBotUI:
             style.configure("Dark.TEntry", fieldbackground="#404040", foreground="white", insertcolor="white")
             self.search_entry.config(style="Dark.TEntry")
 
-            style.configure("Treeview", 
+            style.configure("Chat.Treeview", 
                             background="#2d2d2d", 
                             foreground="white", 
                             fieldbackground="#2d2d2d",
                             rowheight=25)
-            style.configure("Treeview.Heading", 
+            style.configure("Chat.Treeview.Heading", 
                             background="#3d3d3d",
                             foreground="white",
                             relief="flat")
-            style.map("Treeview", background=[('selected', '#404040')],
+            style.map("Chat.Treeview", background=[('selected', '#404040')],
                       foreground=[('selected', 'white')])
                       
             # Scrollbar Dark Mode
-            style.configure("Vertical.TScrollbar",
+            style.configure("Chat.Vertical.TScrollbar",
                             troughcolor="#2e2e2e",
                             background="#555555",
                             bordercolor="#2e2e2e",
                             arrowcolor="white",
                             relief="flat")
-            style.map("Vertical.TScrollbar",
+            style.map("Chat.Vertical.TScrollbar",
                       background=[('active', '#666666'), ('disabled', '#2e2e2e')])
                       
-            style.configure("Horizontal.TScrollbar",
+            style.configure("Chat.Horizontal.TScrollbar",
                             troughcolor="#2e2e2e",
                             background="#555555",
                             bordercolor="#2e2e2e",
                             arrowcolor="white",
                             relief="flat")
-            style.map("Horizontal.TScrollbar",
+            style.map("Chat.Horizontal.TScrollbar",
                       background=[('active', '#666666'), ('disabled', '#2e2e2e')])
 
             # Button Frame Dark Mode
@@ -1013,38 +1013,38 @@ class ChatBotUI:
             self.actions_frame.config(style="Dark.TFrame")
         else:
             self.search_row.config(style="TFrame")
-            style.configure("TEntry", fieldbackground="white", foreground="black", insertcolor="black")
-            self.search_entry.config(style="TEntry") 
+            style.configure("Chat.TEntry", fieldbackground="white", foreground="black", insertcolor="black")
+            self.search_entry.config(style="Chat.TEntry") 
             
-            style.configure("Treeview", 
+            style.configure("Chat.Treeview", 
                             background="white", 
                             foreground="black", 
                             fieldbackground="white",
                             rowheight=25)
-            style.configure("Treeview.Heading", 
+            style.configure("Chat.Treeview.Heading", 
                             background="#f0f0f0", 
                             foreground="black",
                             relief="flat")
-            style.map("Treeview", background=[('selected', '#0078D7')],
+            style.map("Chat.Treeview", background=[('selected', '#0078D7')],
                       foreground=[('selected', 'white')])
 
             # Scrollbar Light Mode (Reset to defaults or explicit light)
-            style.configure("Vertical.TScrollbar",
+            style.configure("Chat.Vertical.TScrollbar",
                             troughcolor="#f0f0f0",
                             background="#cdcdcd",
                             bordercolor="#f0f0f0",
                             arrowcolor="black",
                             relief="flat")
-            style.map("Vertical.TScrollbar",
+            style.map("Chat.Vertical.TScrollbar",
                       background=[('active', '#a6a6a6'), ('disabled', '#f0f0f0')])
                       
-            style.configure("Horizontal.TScrollbar",
+            style.configure("Chat.Horizontal.TScrollbar",
                             troughcolor="#f0f0f0",
                             background="#cdcdcd",
                             bordercolor="#f0f0f0",
                             arrowcolor="black",
                             relief="flat")
-            style.map("Horizontal.TScrollbar",
+            style.map("Chat.Horizontal.TScrollbar",
                       background=[('active', '#a6a6a6'), ('disabled', '#f0f0f0')])
 
             # Button Frame Light Mode

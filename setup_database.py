@@ -2,9 +2,11 @@ import mysql.connector
 import os
 from dotenv import load_dotenv
 from config import DB_CONFIG
+from utils import get_executable_dir
 
 # Load environment variables
-load_dotenv()
+env_path = os.path.join(get_executable_dir(), '.env')
+load_dotenv(dotenv_path=env_path)
 
 def setup_database():
     print("Starting database setup...")

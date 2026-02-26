@@ -346,7 +346,7 @@ class face_recog:
                   return
  
     def open_images(self):
-         os.startfile('data')
+         os.startfile(resource_path('data'))
 
     def update_time(self):
         current_time = strftime('%I:%M:%S %p')

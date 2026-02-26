@@ -1,1 +1,1 @@
-pyinstaller FaceRecognitionSystem.spec --noconfirm --clean
+pyinstaller FaceRecognitionSystem.spec --noconfirm

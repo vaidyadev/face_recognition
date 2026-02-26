@@ -18,7 +18,9 @@ class LowAttendanceNotifier:
     def _load_bot_token(self):
         # Try .env first
         from dotenv import load_dotenv
-        load_dotenv()
+        from utils import get_executable_dir
+        env_path = os.path.join(get_executable_dir(), '.env')
+        load_dotenv(dotenv_path=env_path)
         token = os.getenv("TELEGRAM_BOT_TOKEN")
         if token: return token
         
