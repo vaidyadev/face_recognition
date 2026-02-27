@@ -263,7 +263,6 @@ class login_window:
             if hasattr(self, 'loading_splash'):
                 self.root.after(0, self.loading_splash.destroy)
 
-
     def transition_to_main(self, face_recog_class):
         if hasattr(self, 'loading_splash'):
             self.loading_splash.destroy()

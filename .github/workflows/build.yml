@@ -36,5 +36,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: FaceRecognitionSystem-EXE
-        path: dist/FaceRecognitionSystem
+        path: dist/FaceRecognitionSystem.exe
         retention-days: 7 # Will keep the downloaded zip available for a week
