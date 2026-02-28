@@ -29,12 +29,13 @@ jobs:
       run: |
         pip install -r requirements.txt
         
-    - name: Build with PyInstaller
-      run: pyinstaller FaceRecognitionSystem.spec --noconfirm
+    - name: Build with PowerShell Script
+      shell: powershell
+      run: .\build_exe.ps1
 
-    - name: Upload Artifact
+    - name: Upload dist folder
       uses: actions/upload-artifact@v4
       with:
-        name: FaceRecognitionSystem-EXE
-        path: dist/FaceRecognitionSystem.exe
-        retention-days: 7 # Will keep the downloaded zip available for a week
+        name: dist
+        path: dist
+        retention-days: 7
